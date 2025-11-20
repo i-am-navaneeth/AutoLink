@@ -7,6 +7,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useUser } from '@/context/user-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,17 +48,21 @@ export default function LoginPage() {
               <Phone className="mr-2" />
               Login with Phone
             </Button>
-            <p className="text-center text-sm text-muted-foreground">or continue as a guest:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button size="lg" className="h-auto py-4" onClick={() => handleLogin('passenger')}>
-                <User className="mr-2" />
-                I'm a Passenger
-              </Button>
-              <Button size="lg" className="h-auto py-4" variant="secondary" onClick={() => handleLogin('pilot')}>
-                <Car className="mr-2" />
-                I'm a Pilot
-              </Button>
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  New to AutoLink?
+                </span>
+              </div>
             </div>
+            <Button asChild variant="secondary">
+                <Link href="/register">
+                    Create a new Account
+                </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
