@@ -1,211 +1,165 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the AutoLink application.",
+      "description": "Represents a user in the ride-hailing app.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user, equivalent to auth.uid."
         },
-        "name": {
+        "role": {
           "type": "string",
-          "description": "The user's name."
+          "enum": ["PASSENGER", "PILOT"],
+          "description": "The user's role in the application."
+        },
+        "full_name": {
+          "type": "string",
+          "description": "The user's full name."
         },
         "phone": {
           "type": "string",
           "description": "The user's phone number."
         },
-        "role": {
+        "email": {
           "type": "string",
-          "description": "The user's role (e.g., rider, pilot)."
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "avatar_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the user's profile picture."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "JSON object for storing user preferences like 'quiet ride' or 'share ride'."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the user was created."
+        }
+      },
+      "required": ["id", "role", "phone", "created_at"]
+    },
+    "Pilot": {
+      "title": "Pilot",
+      "type": "object",
+      "description": "Stores additional information for users with the 'PILOT' role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The pilot's user ID, foreign key to users.id."
+        },
+        "license_number": {
+          "type": "string",
+          "description": "The pilot's driving license number."
+        },
+        "license_image_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the uploaded license image."
+        },
+        "vehicle_number": {
+          "type": "string",
+          "description": "The pilot's vehicle registration number."
+        },
+        "vehicle_type": {
+          "type": "string",
+          "enum": ["AUTO", "TAXI", "MOTORBIKE"]
         },
         "verified": {
           "type": "boolean",
-          "description": "Indicates whether the user's phone number is verified."
+          "description": "Whether the pilot has been verified by an admin."
         },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the user was created.",
-          "format": "date-time"
-        },
-        "lastSeen": {
-          "type": "string",
-          "description": "Timestamp indicating the last time the user was active.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "phone",
-        "role",
-        "verified",
-        "createdAt",
-        "lastSeen"
-      ]
-    },
-    "Pilot": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Pilot",
-      "type": "object",
-      "description": "Represents a pilot (driver) in the AutoLink application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the pilot."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:1 Pilot)"
-        },
-        "licenseNumber": {
-          "type": "string",
-          "description": "The pilot's driver's license number."
-        },
-        "panCardNumber": {
-          "type": "string",
-          "description": "The pilot's PAN card number."
-        },
-        "vehiclePhotoUrl": {
-          "type": "string",
-          "description": "URL of the pilot's vehicle photo.",
-          "format": "uri"
-        },
-        "emergencyContactName": {
-          "type": "string",
-          "description": "Name of the emergency contact."
-        },
-        "emergencyContactPhone": {
-          "type": "string",
-          "description": "Phone number of the emergency contact."
-        },
-        "isVerified": {
+        "auto_accept": {
           "type": "boolean",
-          "description": "Indicates whether the pilot's information is verified."
+          "description": "Whether the pilot wishes to auto-accept rides."
+        },
+        "subscription_id": {
+          "type": "string",
+          "description": "The ID of the pilot's active subscription plan."
+        },
+        "payout_info": {
+          "type": "object",
+          "description": "Securely stored bank account or payout information."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the pilot profile was created."
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "licenseNumber",
-        "panCardNumber",
-        "vehiclePhotoUrl",
-        "emergencyContactName",
-        "emergencyContactPhone",
-        "isVerified"
-      ]
+      "required": ["id", "license_number", "license_image_url", "vehicle_number", "vehicle_type", "verified"]
     },
     "Ride": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ride",
       "type": "object",
-      "description": "Represents a ride in the AutoLink application.",
+      "description": "Represents a single ride request and its lifecycle.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ride."
-        },
-        "pilotId": {
-          "type": "string",
-          "description": "Reference to Pilot. (Relationship: Pilot 1:N Ride)"
-        },
-        "riderId": {
-          "type": "string",
-          "description": "Reference to User representing the rider. (Relationship: User 1:N Ride)"
-        },
-        "startLocation": {
-          "type": "string",
-          "description": "The starting location of the ride."
-        },
-        "endLocation": {
-          "type": "string",
-          "description": "The ending location of the ride."
-        },
-        "startTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the ride started.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the ride ended.",
-          "format": "date-time"
-        },
-        "fare": {
-          "type": "number",
-          "description": "The fare for the ride."
-        },
-        "pin": {
-          "type": "string",
-          "description": "The pin number for verification of ride."
-        },
+        "id": { "type": "string" },
+        "passenger_id": { "type": "string" },
+        "pilot_id": { "type": "string" },
+        "pickup_address": { "type": "string" },
+        "pickup_lat": { "type": "number" },
+        "pickup_lng": { "type": "number" },
+        "dropoff_address": { "type": "string" },
+        "dropoff_lat": { "type": "number" },
+        "dropoff_lng": { "type": "number" },
         "status": {
           "type": "string",
-          "description": "The status of the ride (e.g., requested, accepted, in progress, completed, cancelled)."
-        }
+          "enum": ["requested", "matched", "accepted", "started", "completed", "cancelled"]
+        },
+        "fare_estimate": { "type": "number" },
+        "distance_km": { "type": "number" },
+        "metadata": { "type": "object" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "pilotId",
-        "riderId",
-        "startLocation",
-        "endLocation",
-        "startTime",
-        "endTime",
-        "fare",
-        "pin",
-        "status"
-      ]
+      "required": ["id", "passenger_id", "pickup_address", "pickup_lat", "pickup_lng", "dropoff_address", "dropoff_lat", "dropoff_lng", "status", "created_at", "updated_at"]
     },
-    "Subscription": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subscription",
-      "type": "object",
-      "description": "Represents a pilot's subscription to the AutoLink service.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the subscription."
+    "Plan": {
+        "title": "Plan",
+        "type": "object",
+        "description": "Defines a subscription plan for pilots.",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "interval": { "type": "string" },
+            "price": { "type": "number" },
+            "features": { "type": "object" }
         },
-        "pilotId": {
-          "type": "string",
-          "description": "Reference to Pilot. (Relationship: Pilot 1:N Subscription)"
+        "required": ["id", "name", "price"]
+    },
+    "Ledger": {
+        "title": "Ledger",
+        "type": "object",
+        "description": "Records all financial transactions for pilots.",
+        "properties": {
+            "id": { "type": "string" },
+            "pilot_id": { "type": "string" },
+            "ride_id": { "type": "string" },
+            "amount": { "type": "number" },
+            "kind": { "type": "string", "enum": ["payout", "fee", "refund", "bonus"] },
+            "created_at": { "type": "string", "format": "date-time" }
         },
-        "startDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the subscription started.",
-          "format": "date-time"
+        "required": ["id", "pilot_id", "amount", "kind", "created_at"]
+    },
+    "Notification": {
+        "title": "Notification",
+        "type": "object",
+        "description": "Represents a notification sent to a user.",
+        "properties": {
+            "id": { "type": "string" },
+            "user_id": { "type": "string" },
+            "type": { "type": "string" },
+            "payload": { "type": "object" },
+            "read": { "type": "boolean" },
+            "created_at": { "type": "string", "format": "date-time" }
         },
-        "endDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the subscription ends.",
-          "format": "date-time"
-        },
-        "subscriptionType": {
-          "type": "string",
-          "description": "The subscription type (e.g., daily, monthly, yearly)."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount paid for the subscription."
-        },
-        "paymentMethod": {
-          "type": "string",
-          "description": "The payment method used for the subscription (e.g., credit card, UPI)."
-        }
-      },
-      "required": [
-        "id",
-        "pilotId",
-        "startDate",
-        "endDate",
-        "subscriptionType",
-        "amount",
-        "paymentMethod"
-      ]
+        "required": ["id", "user_id", "type", "payload", "created_at"]
     }
   },
   "auth": {
@@ -217,28 +171,28 @@
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/User"
-      },
-      "description": "Stores user profiles. The 'userId' is derived from the Firebase Authentication UID. Includes fields for name, phone, role, and verification status."
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores core user profiles."
     },
     "/pilots/{pilotId}": {
-      "schema": {
-        "$ref": "#/entities/Pilot"
-      },
-      "description": "Stores pilot profiles. Contains license and contact details."
+      "schema": { "$ref": "#/entities/Pilot" },
+      "description": "Stores detailed profiles for pilots."
     },
     "/rides/{rideId}": {
-      "schema": {
-        "$ref": "#/entities/Ride"
-      },
-      "description": "Stores ride information. Contains references to 'pilotId' and 'riderId' for associating rides with users and pilots."
+      "schema": { "$ref": "#/entities/Ride" },
+      "description": "Stores all ride information."
     },
-    "/subscriptions/{subscriptionId}": {
-      "schema": {
-        "$ref": "#/entities/Subscription"
-      },
-      "description": "Stores subscription information for pilots. Includes the 'pilotId' to link the subscription to a pilot."
+    "/plans/{planId}": {
+      "schema": { "$ref": "#/entities/Plan" },
+      "description": "Stores available subscription plans for pilots."
+    },
+    "/ledger/{ledgerEntryId}": {
+      "schema": { "$ref": "#/entities/Ledger" },
+      "description": "Financial transaction records for pilots."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "User-specific notifications."
     }
   }
 }
