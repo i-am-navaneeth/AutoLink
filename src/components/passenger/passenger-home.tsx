@@ -36,14 +36,15 @@ export default function PassengerHome() {
         });
       }, 1000);
 
-      // Simulate a pilot accepting the ride
+      // In a real app, you would be listening to Firestore for a ride update.
+      // This timeout simulates a pilot accepting the ride.
       const rideAcceptTimeout = setTimeout(() => {
-        setAcceptedRide(availableRides[0]);
-        setIsSearching(false);
-        toast({
-          title: 'Ride Accepted!',
-          description: `${availableRides[0].pilot.name} has accepted your ride request.`,
-        });
+        // setAcceptedRide(availableRides[0]);
+        // setIsSearching(false);
+        // toast({
+        //   title: 'Ride Accepted!',
+        //   description: `${availableRides[0].pilot.name} has accepted your ride request.`,
+        // });
       }, 10000); // Pilot accepts after 10 seconds
 
       timer = setTimeout(() => {
@@ -144,7 +145,7 @@ export default function PassengerHome() {
         <Card>
           <CardContent className="p-6 text-center space-y-4">
             <div className="flex justify-center items-center space-x-2">
-              <p className="text-lg text-muted-foreground">Almost there! We’re waiting for the pilot’s response</p>
+              <p className="text-lg text-muted-foreground">Almost there! We’re waiting for a pilot's response</p>
               <div className="flex space-x-1">
                 <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                 <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>

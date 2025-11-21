@@ -25,14 +25,15 @@ import {
 
 type AcceptedRideCardProps = {
   ride: Ride;
+  pilotName?: string;
   onCancel: () => void;
 };
 
-export default function AcceptedRideCard({ ride, onCancel }: AcceptedRideCardProps) {
+export default function AcceptedRideCard({ ride, pilotName, onCancel }: AcceptedRideCardProps) {
   return (
     <Card className="bg-primary/5 border-primary shadow-lg animate-fade-in-up">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg">Your ride is accepted by {ride.pilot.name}</CardTitle>
+        <CardTitle className="text-lg">Your ride is accepted by {pilotName || 'a pilot'}</CardTitle>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -66,16 +67,16 @@ export default function AcceptedRideCard({ ride, onCancel }: AcceptedRideCardPro
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-primary">
-                <AvatarImage src={ride.pilot.avatarUrl} alt={ride.pilot.name} />
-                <AvatarFallback>{ride.pilot.name.charAt(0)}</AvatarFallback>
+                {/* <AvatarImage src={ride.pilot.avatarUrl} alt={ride.pilot.name} />
+                <AvatarFallback>{ride.pilot.name.charAt(0)}</AvatarFallback> */}
             </Avatar>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                 <div className='font-semibold'>Vehicle:</div>
-                <div>{ride.pilot.vehicle.number}</div>
+                {/* <div>{ride.pilot.vehicle.number}</div> */}
                 <div className='font-semibold'>Fare:</div>
-                <div className='flex items-center gap-1'><Wallet className="h-4 w-4 text-muted-foreground" /> ₹{ride.price}</div>
-                <div className='font-semibold'>Seats Left:</div>
-                <div className='flex items-center gap-1'><Users className="h-4 w-4 text-muted-foreground" /> {ride.availableSeats}</div>
+                <div className='flex items-center gap-1'><Wallet className="h-4 w-4 text-muted-foreground" /> ₹{ride.fareEstimate}</div>
+                <div className='font-semibold'>Distance:</div>
+                <div className='flex items-center gap-1'><MapPin className="h-4 w-4 text-muted-foreground" /> {ride.distanceKm} km</div>
             </div>
         </div>
         <Button variant="outline" className="w-full">

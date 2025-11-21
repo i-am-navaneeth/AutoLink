@@ -24,6 +24,7 @@ import {
   Map,
   Rocket,
   User as UserIcon,
+  ShieldCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -177,6 +178,24 @@ const PilotNav = () => {
   );
 };
 
+// A new nav item for admins
+const AdminNav = () => {
+    const pathname = usePathname();
+    return (
+        <SidebarMenuItem>
+            <NavLink href="/admin/verify-pilots">
+            <SidebarMenuButton
+                isActive={pathname.startsWith('/admin/verify-pilots')}
+                tooltip="Verify Pilots"
+            >
+                <ShieldCheck />
+                <span>Verify Pilots</span>
+            </SidebarMenuButton>
+            </NavLink>
+      </SidebarMenuItem>
+    )
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { userType, logout, isSearching, setIsSearching } = useUser();
   const router = useRouter();
@@ -199,6 +218,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // A simple way to handle admin role, you might have a more robust system
+  const isAdmin = userType === 'pilot'; // For demo, let's say pilots are also admins
   const currentUser = userType === 'passenger' ? mockPassenger : mockPilot;
 
   return (
@@ -216,6 +237,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             {userType === 'passenger' ? <PassengerNav /> : <PilotNav />}
+            {isAdmin && <AdminNav />}
           </SidebarMenu>
         </SidebarContent>
 

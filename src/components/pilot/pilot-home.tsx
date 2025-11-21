@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { rideRequests as initialRideRequests } from '@/lib/data';
 import RideRequestCard from './ride-request-card';
 import { Bell, MapPin, MoreVertical, PlusCircle, Users, Zap, Car } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -16,10 +15,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { RideRequest } from '@/lib/types';
+import type { Ride } from '@/lib/types';
 import PinEntryDialog from './pin-entry-dialog';
 import { useUser } from '@/context/user-context';
 import { Skeleton } from '../ui/skeleton';
+import { useCollection, useFirestore } from '@/firebase';
+import { collection, doc, updateDoc } from 'firebase/firestore';
 
 export default function PilotHome() {
   const [seats, setSeats] = useState('');
@@ -27,6 +28,10 @@ export default function PilotHome() {
   const [origin, setOrigin] = useState('');
   const [fare, setFare] = useState('');
   const [seatError, setSeatError] = useState('');
+
+  const { firebaseUser } = useUser();
+  const db = useFirestore();
+  const { data: rides, isLoading: ridesLoading } = useCollection<Ride>(db ? collection(db, 'rides') : null);
 
   const {
     isRideLive,
@@ -37,12 +42,19 @@ export default function PilotHome() {
     setIsQuickRideLive,
   } = useUser();
 
-  const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
+  const [rideRequests, setRideRequests] = useState<Ride[]>([]);
   const { toast } = useToast();
   const [hasNotified, setHasNotified] = useState(false);
 
   const isFormValid = origin && destination && fare && seats && !seatError;
   const isPilotLive = isRideLive || isQuickRideLive;
+
+  useEffect(() => {
+    if(rides) {
+        const pendingRequests = rides.filter(ride => ride.status === 'requested');
+        setRideRequests(pendingRequests);
+    }
+  }, [rides]);
 
   useEffect(() => {
     if (isRideLive && rideRequests.length > 0 && !hasNotified) {
@@ -88,7 +100,6 @@ export default function PilotHome() {
     });
     setIsRideLive(true);
     setIsQuickRideLive(false); // Cancel quick ride mode
-    setRideRequests(initialRideRequests.filter(req => req.destination === destination));
     setPassengerCount(0); // Reset passenger count on new ride
     setHasNotified(false); // Reset notification status
   };
@@ -139,14 +150,28 @@ export default function PilotHome() {
     setIsQuickRideLive(false);
   }
 
-  const handleRequestAccepted = (requestId: string) => {
+  const handleRequestAccepted = async (rideId: string) => {
+    if (!db || !firebaseUser.user) return;
+
     if (parseInt(seats, 10) - passengerCount > 0) {
-      setRideRequests(prev =>
-        prev.map(req =>
-          req.id === requestId ? { ...req, status: 'accepted' } : req
-        )
-      );
-      // Passenger count will increase when ride is started with PIN
+        const rideRef = doc(db, 'rides', rideId);
+        try {
+            await updateDoc(rideRef, {
+                status: 'accepted',
+                pilotId: firebaseUser.user.uid,
+            });
+            toast({
+                title: `Request Accepted`,
+                description: `You have accepted the ride request.`,
+            });
+        } catch (error) {
+            console.error("Failed to accept ride: ", error);
+            toast({
+                title: `Accept Failed`,
+                description: `Could not accept the ride. Please try again.`,
+                variant: 'destructive'
+            });
+        }
     } else {
         toast({
             variant: 'destructive',
@@ -156,22 +181,30 @@ export default function PilotHome() {
     }
   };
 
-  const handleRequestDeclined = (requestId: string) => {
-    const request = rideRequests.find(req => req.id === requestId);
-    if(request && request.status === 'accepted') {
-        // If a ride was accepted but is now cancelled before starting
+  const handleRequestDeclined = async (rideId: string) => {
+    if (!db) return;
+    const rideRef = doc(db, 'rides', rideId);
+    try {
+        await updateDoc(rideRef, { status: 'cancelled' }); // Or deleteDoc(rideRef)
+        toast({
+            title: `Request Declined`,
+            description: `You have declined the ride request.`,
+            variant: 'destructive',
+        });
+    } catch (error) {
+        console.error("Failed to decline ride: ", error);
+        toast({
+            title: `Decline Failed`,
+            description: `Could not decline the ride. Please try again.`,
+            variant: 'destructive'
+        });
     }
-    setRideRequests(prev => prev.filter(req => req.id !== requestId));
   }
 
-  const handleRideStarted = (requestId?: string) => {
+  const handleRideStarted = (rideId?: string) => {
     setPassengerCount(passengerCount + 1);
-    if (requestId) {
-        setRideRequests(prev =>
-            prev.map(req =>
-              req.id === requestId ? { ...req, status: 'started' } : req
-            )
-          );
+    if (rideId) {
+        // Update ride status to 'started' in Firestore
     }
   }
 
@@ -348,7 +381,7 @@ export default function PilotHome() {
       {isRideLive ? (
         <div>
           <h2 className="text-xl font-bold mb-4 font-headline">Shared Ride Requests</h2>
-          {rideRequests.length > 0 ? (
+          {ridesLoading ? <p>Loading requests...</p> : rideRequests.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rideRequests.map((request) => (
                 <RideRequestCard 
