@@ -7,11 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Search } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { availableRides } from '@/lib/data';
 import type { Ride } from '@/lib/types';
 import AcceptedRideCard from './accepted-ride-card';
 import { Car } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useUser } from '@/context/user-context';
 import { Skeleton } from '../ui/skeleton';
 
@@ -21,10 +19,12 @@ export default function PassengerHome() {
   const { toast } = useToast();
   const searchDuration = 50; // 50 seconds
   const [acceptedRide, setAcceptedRide] = useState<Ride | null>(null);
+  const [noPilotsFound, setNoPilotsFound] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isSearching && !acceptedRide) {
+      setNoPilotsFound(false);
       setProgress(0);
       const interval = setInterval(() => {
         setProgress((prev) => {
@@ -36,23 +36,23 @@ export default function PassengerHome() {
         });
       }, 1000);
 
-      // In a real app, you would be listening to Firestore for a ride update.
-      // This timeout simulates a pilot accepting the ride.
       const rideAcceptTimeout = setTimeout(() => {
+        // This is a simulation. In a real app, you'd wait for a real-time event.
         // setAcceptedRide(availableRides[0]);
         // setIsSearching(false);
         // toast({
         //   title: 'Ride Accepted!',
         //   description: `${availableRides[0].pilot.name} has accepted your ride request.`,
         // });
-      }, 10000); // Pilot accepts after 10 seconds
+      }, 10000); // Simulates a pilot accepting after 10 seconds
 
       timer = setTimeout(() => {
         if (!acceptedRide) {
           setIsSearching(false);
+          setNoPilotsFound(true); // Set state to show retry UI
           toast({
-            title: 'Request Expired',
-            description: 'No pilots responded in time. Please try searching again.',
+            title: 'No Pilots Found',
+            description: 'We couldn\'t find any pilots heading your way. Please try again.',
             variant: 'destructive',
           });
         }
@@ -70,6 +70,7 @@ export default function PassengerHome() {
     e.preventDefault();
     setIsSearching(true);
     setAcceptedRide(null);
+    setNoPilotsFound(false);
     toast({
         title: 'Searching for Pilots',
         description: 'We are looking for pilots heading your way.',
@@ -154,6 +155,18 @@ export default function PassengerHome() {
             </div>
             <Progress value={progress} className="w-full" />
           </CardContent>
+        </Card>
+      )}
+
+      {noPilotsFound && (
+        <Card>
+            <CardContent className="p-6 text-center space-y-4">
+                <p className="text-lg text-muted-foreground">No pilots found. Please try again.</p>
+                <Button onClick={handleSearch}>
+                    <Search className="mr-2 h-4 w-4" />
+                    Retry Search
+                </Button>
+            </CardContent>
         </Card>
       )}
 

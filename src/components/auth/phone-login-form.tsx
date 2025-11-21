@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,17 +40,25 @@ export function PhoneLoginForm() {
     if (!auth || !isClient) return;
     if (window.recaptchaVerifier) return;
 
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      size: 'invisible',
-    });
+    try {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
 
-    window.recaptchaVerifier.render().catch((err) => {
-        toast({
-            title: "reCAPTCHA Error",
-            description: "Could not initialize reCAPTCHA. Please refresh the page.",
-            variant: "destructive"
-        })
-    });
+      // Render can fail in some environments — handle gracefully
+      window.recaptchaVerifier
+        .render()
+        .catch((err) => {
+          console.warn('reCAPTCHA render failed', err);
+          toast({
+            title: 'reCAPTCHA Error',
+            description: 'Could not initialize reCAPTCHA. Please refresh the page.',
+            variant: 'destructive',
+          });
+        });
+    } catch (err) {
+      console.warn('reCAPTCHA init error', err);
+    }
   }, [auth, toast, isClient]);
 
   const ensureUserDoc = async (user: User) => {
@@ -63,11 +71,12 @@ export function PhoneLoginForm() {
           id: user.uid,
           name: user.displayName || 'New User',
           phone: user.phoneNumber || '',
-          role: 'rider', // Default role
+          role: 'rider', // Default role (you can change)
           verified: true,
           createdAt: serverTimestamp(),
           lastSeen: serverTimestamp(),
         };
+        // Fire-and-forget non-blocking set
         setDocumentNonBlocking(uref, newUserDoc, {});
       } else {
         setDocumentNonBlocking(uref, { lastSeen: serverTimestamp() }, { merge: true });
@@ -83,14 +92,15 @@ export function PhoneLoginForm() {
   };
 
   const sendOtp = async () => {
-    const fullPhoneNumber = `+91${phoneNumber}`;
-    if (!phoneNumber || !window.recaptchaVerifier) {
-        toast({
-            title: "Invalid Input",
-            description: "Please enter a valid phone number.",
-            variant: "destructive"
-        });
-        return;
+    const trimmed = phoneNumber.trim().replace(/\s+/g, '');
+    const fullPhoneNumber = trimmed.startsWith('+') ? trimmed : `+91${trimmed}`;
+    if (!trimmed || !window.recaptchaVerifier) {
+      toast({
+        title: 'Invalid Input',
+        description: 'Please enter a valid phone number.',
+        variant: 'destructive',
+      });
+      return;
     }
     setLoading(true);
     try {
@@ -99,8 +109,8 @@ export function PhoneLoginForm() {
       setOtpSent(true);
       toast({ title: 'OTP Sent', description: 'Check your phone for the verification code.' });
     } catch (err: any) {
-      console.error(err);
-      toast({ title: 'Failed to send OTP', description: err.message, variant: 'destructive' });
+      console.error('sendOtp error', err);
+      toast({ title: 'Failed to send OTP', description: err?.message || String(err), variant: 'destructive' });
       setOtpSent(false);
     } finally {
       setLoading(false);
@@ -109,12 +119,12 @@ export function PhoneLoginForm() {
 
   const verifyOtp = async () => {
     if (!otp || !window.confirmationResult) {
-        toast({
-            title: "Invalid Input",
-            description: "Please enter the OTP.",
-            variant: "destructive"
-        });
-        return;
+      toast({
+        title: 'Invalid Input',
+        description: 'Please enter the OTP.',
+        variant: 'destructive',
+      });
+      return;
     }
     setLoading(true);
     try {
@@ -122,26 +132,27 @@ export function PhoneLoginForm() {
       const user = result.user;
       await ensureUserDoc(user);
       toast({ title: 'Login Successful', description: 'Welcome to AutoLink!' });
-      router.push('/home'); // Redirect to home page
+      router.push('/home'); // Redirect to home page (adjust route as needed)
     } catch (err: any) {
-      console.error(err);
-      toast({ title: 'OTP Verification Failed', description: err.message, variant: 'destructive' });
+      console.error('verifyOtp error', err);
+      toast({ title: 'OTP Verification Failed', description: err?.message || String(err), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
-  
+
   if (!isClient) {
     return null;
   }
 
   return (
     <>
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container" />
       <CardHeader className="p-0 mb-6">
         <CardTitle className="font-headline text-2xl">Phone Number Login</CardTitle>
         <CardDescription>Enter your phone number to receive a one-time password.</CardDescription>
       </CardHeader>
+
       {!otpSent ? (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -159,6 +170,7 @@ export function PhoneLoginForm() {
               />
             </div>
           </div>
+
           <Button onClick={sendOtp} className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Send OTP
@@ -181,11 +193,13 @@ export function PhoneLoginForm() {
               />
             </div>
           </div>
+
           <Button onClick={verifyOtp} className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Verify & Login
           </Button>
-           <Button variant="link" onClick={() => setOtpSent(false)} className="w-full">
+
+          <Button variant="link" onClick={() => setOtpSent(false)} className="w-full">
             Back
           </Button>
         </div>

@@ -48,11 +48,11 @@ export default function PilotRegisterForm() {
               <Input id="phone" placeholder="Your phone for login" required type="tel" />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="email">Email (Optional)</Label>
+              <Label htmlFor="email">Email <span className="text-muted-foreground">(Optional)</span></Label>
               <Input id="email" placeholder="john.doe@example.com" type="email" />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="avatar">Profile Photo (Optional)</Label>
+                <Label htmlFor="avatar">Profile Photo <span className="text-muted-foreground">(Optional)</span></Label>
                 <Input id="avatar" type="file" className="pt-2 file:text-primary file:font-semibold"/>
             </div>
           </div>
@@ -88,11 +88,11 @@ export default function PilotRegisterForm() {
               </Select>
             </div>
              <div className="space-y-2">
-              <Label htmlFor="vehicle_model">Vehicle Model (Optional)</Label>
+              <Label htmlFor="vehicle_model">Vehicle Model <span className="text-muted-foreground">(Optional)</span></Label>
               <Input id="vehicle_model" placeholder="e.g., Bajaj RE" />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="vehicle_color">Vehicle Color (Optional)</Label>
+              <Label htmlFor="vehicle_color">Vehicle Color <span className="text-muted-foreground">(Optional)</span></Label>
               <Input id="vehicle_color" placeholder="e.g., Black and Yellow" />
             </div>
             <div className="space-y-2 md:col-span-2">
