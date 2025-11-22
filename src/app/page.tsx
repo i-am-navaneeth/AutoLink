@@ -2,22 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Car, Phone, User } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useUser } from '@/context/user-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUserType } = useUser();
   const heroImage = PlaceHolderImages.find((img) => img.id === 'login-hero');
-
-  const handleLogin = (type: 'passenger' | 'pilot') => {
-    setUserType(type);
-    router.push('/home');
-  };
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
@@ -41,12 +34,12 @@ export default function LoginPage() {
         <Card className="w-full max-w-md animate-fade-in-up animation-delay-300">
           <CardHeader>
             <CardTitle>Get Started</CardTitle>
-            <CardDescription>Login with your phone number to begin.</CardDescription>
+            <CardDescription>Login with your email to begin.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <Button size="lg" className="h-auto py-4" onClick={() => router.push('/phone-login')}>
-              <Phone className="mr-2" />
-              Login with Phone
+            <Button size="lg" className="h-auto py-4" onClick={() => router.push('/email-login')}>
+              <Mail className="mr-2" />
+              Login with Email
             </Button>
             <div className="relative my-2">
               <div className="absolute inset-0 flex items-center">

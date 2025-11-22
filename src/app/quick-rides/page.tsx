@@ -17,7 +17,8 @@ import { useUser } from '@/context/user-context';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
 import type { Ride } from '@/lib/types';
-import AcceptedRideCard from '../passenger/accepted-ride-card';
+import AcceptedRideCard from '@/components/passenger/accepted-ride-card';
+
 
 export default function QuickRidesPage() {
   const [date, setDate] = useState<Date>();

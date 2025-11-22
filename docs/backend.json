@@ -11,7 +11,10 @@
         },
         "role": {
           "type": "string",
-          "enum": ["PASSENGER", "PILOT"],
+          "enum": [
+            "PASSENGER",
+            "PILOT"
+          ],
           "description": "The user's role in the application."
         },
         "full_name": {
@@ -42,7 +45,12 @@
           "description": "Timestamp when the user was created."
         }
       },
-      "required": ["id", "role", "phone", "created_at"]
+      "required": [
+        "id",
+        "role",
+        "email",
+        "created_at"
+      ]
     },
     "Pilot": {
       "title": "Pilot",
@@ -68,7 +76,11 @@
         },
         "vehicle_type": {
           "type": "string",
-          "enum": ["AUTO", "TAXI", "MOTORBIKE"]
+          "enum": [
+            "AUTO",
+            "TAXI",
+            "MOTORBIKE"
+          ]
         },
         "verified": {
           "type": "boolean",
@@ -92,106 +104,230 @@
           "description": "Timestamp when the pilot profile was created."
         }
       },
-      "required": ["id", "license_number", "license_image_url", "vehicle_number", "vehicle_type", "verified"]
+      "required": [
+        "id",
+        "license_number",
+        "license_image_url",
+        "vehicle_number",
+        "vehicle_type",
+        "verified"
+      ]
     },
     "Ride": {
       "title": "Ride",
       "type": "object",
       "description": "Represents a single ride request and its lifecycle.",
       "properties": {
-        "id": { "type": "string" },
-        "passenger_id": { "type": "string" },
-        "pilot_id": { "type": "string" },
-        "pickup_address": { "type": "string" },
-        "pickup_lat": { "type": "number" },
-        "pickup_lng": { "type": "number" },
-        "dropoff_address": { "type": "string" },
-        "dropoff_lat": { "type": "number" },
-        "dropoff_lng": { "type": "number" },
+        "id": {
+          "type": "string"
+        },
+        "passenger_id": {
+          "type": "string"
+        },
+        "pilot_id": {
+          "type": "string"
+        },
+        "pickup_address": {
+          "type": "string"
+        },
+        "pickup_lat": {
+          "type": "number"
+        },
+        "pickup_lng": {
+          "type": "number"
+        },
+        "dropoff_address": {
+          "type": "string"
+        },
+        "dropoff_lat": {
+          "type": "number"
+        },
+        "dropoff_lng": {
+          "type": "number"
+        },
         "status": {
           "type": "string",
-          "enum": ["requested", "matched", "accepted", "started", "completed", "cancelled"]
+          "enum": [
+            "requested",
+            "matched",
+            "accepted",
+            "started",
+            "completed",
+            "cancelled"
+          ]
         },
-        "fare_estimate": { "type": "number" },
-        "distance_km": { "type": "number" },
-        "metadata": { "type": "object" },
-        "created_at": { "type": "string", "format": "date-time" },
-        "updated_at": { "type": "string", "format": "date-time" }
+        "fare_estimate": {
+          "type": "number"
+        },
+        "distance_km": {
+          "type": "number"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
       },
-      "required": ["id", "passenger_id", "pickup_address", "pickup_lat", "pickup_lng", "dropoff_address", "dropoff_lat", "dropoff_lng", "status", "created_at", "updated_at"]
+      "required": [
+        "id",
+        "passenger_id",
+        "pickup_address",
+        "pickup_lat",
+        "pickup_lng",
+        "dropoff_address",
+        "dropoff_lat",
+        "dropoff_lng",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
     },
     "Plan": {
-        "title": "Plan",
-        "type": "object",
-        "description": "Defines a subscription plan for pilots.",
-        "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "interval": { "type": "string" },
-            "price": { "type": "number" },
-            "features": { "type": "object" }
+      "title": "Plan",
+      "type": "object",
+      "description": "Defines a subscription plan for pilots.",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "required": ["id", "name", "price"]
+        "name": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number"
+        },
+        "features": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price"
+      ]
     },
     "Ledger": {
-        "title": "Ledger",
-        "type": "object",
-        "description": "Records all financial transactions for pilots.",
-        "properties": {
-            "id": { "type": "string" },
-            "pilot_id": { "type": "string" },
-            "ride_id": { "type": "string" },
-            "amount": { "type": "number" },
-            "kind": { "type": "string", "enum": ["payout", "fee", "refund", "bonus"] },
-            "created_at": { "type": "string", "format": "date-time" }
+      "title": "Ledger",
+      "type": "object",
+      "description": "Records all financial transactions for pilots.",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "required": ["id", "pilot_id", "amount", "kind", "created_at"]
+        "pilot_id": {
+          "type": "string"
+        },
+        "ride_id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "payout",
+            "fee",
+            "refund",
+            "bonus"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "pilot_id",
+        "amount",
+        "kind",
+        "created_at"
+      ]
     },
     "Notification": {
-        "title": "Notification",
-        "type": "object",
-        "description": "Represents a notification sent to a user.",
-        "properties": {
-            "id": { "type": "string" },
-            "user_id": { "type": "string" },
-            "type": { "type": "string" },
-            "payload": { "type": "object" },
-            "read": { "type": "boolean" },
-            "created_at": { "type": "string", "format": "date-time" }
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification sent to a user.",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "required": ["id", "user_id", "type", "payload", "created_at"]
+        "user_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "read": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "user_id",
+        "type",
+        "payload",
+        "created_at"
+      ]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous",
-      "phone"
+      "password"
     ]
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": { "$ref": "#/entities/User" },
+      "schema": {
+        "$ref": "#/entities/User"
+      },
       "description": "Stores core user profiles."
     },
     "/pilots/{pilotId}": {
-      "schema": { "$ref": "#/entities/Pilot" },
+      "schema": {
+        "$ref": "#/entities/Pilot"
+      },
       "description": "Stores detailed profiles for pilots."
     },
     "/rides/{rideId}": {
-      "schema": { "$ref": "#/entities/Ride" },
+      "schema": {
+        "$ref": "#/entities/Ride"
+      },
       "description": "Stores all ride information."
     },
     "/plans/{planId}": {
-      "schema": { "$ref": "#/entities/Plan" },
+      "schema": {
+        "$ref": "#/entities/Plan"
+      },
       "description": "Stores available subscription plans for pilots."
     },
     "/ledger/{ledgerEntryId}": {
-      "schema": { "$ref": "#/entities/Ledger" },
+      "schema": {
+        "$ref": "#/entities/Ledger"
+      },
       "description": "Financial transaction records for pilots."
     },
     "/notifications/{notificationId}": {
-      "schema": { "$ref": "#/entities/Notification" },
+      "schema": {
+        "$ref": "#/entities/Notification"
+      },
       "description": "User-specific notifications."
     }
   }

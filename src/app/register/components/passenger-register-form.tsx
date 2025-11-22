@@ -1,12 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, User, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, User, ShieldCheck, Mail, KeyRound, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth, useFirestore } from '@/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { User as AppUser } from '@/lib/types';
+
 
 type PassengerRegisterFormProps = {
   onBack: () => void;
@@ -15,15 +22,58 @@ type PassengerRegisterFormProps = {
 export default function PassengerRegisterForm({ onBack }: PassengerRegisterFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically handle the form submission, e.g., call an API to create the user
-    toast({
-      title: 'Registration Successful!',
-      description: 'Welcome to AutoLink. You can now log in.',
-    });
-    router.push('/');
+    if (!email || !password) {
+        toast({ title: "Email and password are required.", variant: 'destructive'});
+        return;
+    }
+    setLoading(true);
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+
+        if (fullName) {
+            await updateProfile(firebaseUser, { displayName: fullName });
+        }
+        
+        if (db) {
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            const newUser: Omit<AppUser, 'id'> = {
+                name: fullName || 'New Passenger',
+                email: firebaseUser.email || '',
+                role: 'passenger',
+                createdAt: serverTimestamp() as any,
+                updatedAt: serverTimestamp() as any,
+            };
+            setDocumentNonBlocking(userDocRef, newUser, {});
+        }
+
+        toast({
+            title: 'Registration Successful!',
+            description: 'Welcome to AutoLink. You can now log in.',
+        });
+        router.push('/');
+
+    } catch (error: any) {
+        console.error("Registration failed: ", error);
+        toast({
+            title: 'Registration Failed',
+            description: error.message,
+            variant: 'destructive',
+        });
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -46,20 +96,20 @@ export default function PassengerRegisterForm({ onBack }: PassengerRegisterFormP
         <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full Name (Optional)</Label>
-              <Input id="full_name" placeholder="John Doe" />
+              <Input id="full_name" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={loading}/>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" placeholder="Your phone number for OTP" required type="tel" />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" placeholder="john.doe@example.com" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading}/>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email (Optional)</Label>
-              <Input id="email" placeholder="john.doe@example.com" type="email" />
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" placeholder="Create a password" required type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading}/>
             </div>
         </div>
         <div className="flex justify-end pt-4">
-          <Button type="submit" size="lg">
-            <ShieldCheck className="mr-2 h-5 w-5" />
+          <Button type="submit" size="lg" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ShieldCheck className="mr-2 h-5 w-5" />}
             Create Account
           </Button>
         </div>
