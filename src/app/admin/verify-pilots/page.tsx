@@ -1,117 +1,113 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
-import { AppLayout } from '@/components/layout/app-layout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Pilot } from '@/lib/types';
-import Image from 'next/image';
-import { CheckCircle, ShieldAlert } from 'lucide-react';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
-export default function AdminVerifyPilotsPage() {
-  const db = useFirestore();
-  const { data: pilots, isLoading } = useCollection<Pilot>(db ? collection(db, 'pilots') : null);
-  const { toast } = useToast();
+type PilotRow = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  isVerified?: boolean | null;
+  licenseNumber?: string | null;
+  vehicleNumber?: string | null;
+  licenseImageUrl?: string | null;
+  updatedAt?: string | null;
+};
 
-  const handleVerification = async (pilotId: string, isVerified: boolean) => {
-    if (!db) return;
-    const pilotRef = doc(db, 'pilots', pilotId);
+export default function VerifyPilotsPage() {
+  const [loading, setLoading] = useState(false);
+  const [pilots, setPilots] = useState<PilotRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPilots = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      await updateDoc(pilotRef, { verified: !isVerified });
-      toast({
-        title: 'Pilot Status Updated',
-        description: `Pilot has been ${!isVerified ? 'verified' : 'un-verified'}.`,
+      const { data, error: supaErr } = await supabase
+        .from('pilots')
+        .select('id, name, email, isVerified, licenseNumber, vehicleNumber, licenseImageUrl, updatedAt')
+        .order('createdAt', { ascending: false })
+        .limit(200);
+
+      if (supaErr) throw supaErr;
+      setPilots((data as PilotRow[]) || []);
+    } catch (err: any) {
+      console.error('Failed to fetch pilots', err);
+      setError(err?.message ?? String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPilots();
+  }, []);
+
+  const changeVerification = async (id: string, approve: boolean) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/verify-pilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, approve }),
       });
-    } catch (error) {
-      console.error('Error updating pilot verification:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the pilot\'s verification status.',
-      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Server error');
+      // refresh list
+      await fetchPilots();
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message ?? String(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AppLayout>
-      <Card>
-        <CardHeader>
-          <CardTitle>Admin - Pilot Verification</CardTitle>
-          <CardDescription>Review and approve new pilot applications.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>License</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center">Loading pilots...</TableCell>
-                </TableRow>
-              )}
-              {pilots && pilots.map((pilot) => (
-                <TableRow key={pilot.id}>
-                  <TableCell className="font-medium">{pilot.name}</TableCell>
-                  <TableCell>
-                    <div>{pilot.email}</div>
-                    <div>{pilot.mobile}</div>
-                  </TableCell>
-                  <TableCell>
-                    {pilot.licenseImageUrl ? (
-                       <a href={pilot.licenseImageUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                         View License
-                       </a>
-                    ) : (
-                      'Not uploaded'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={pilot.isVerified ? 'default' : 'destructive'}>
-                      {pilot.isVerified ? 'Verified' : 'Pending'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant={pilot.isVerified ? 'outline' : 'default'}
-                      size="sm"
-                      onClick={() => handleVerification(pilot.id, pilot.isVerified)}
-                    >
-                      {pilot.isVerified ? (
-                        <>
-                          <ShieldAlert className="mr-2 h-4 w-4" />
-                          Revoke
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Verify Pilot
-                        </>
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!isLoading && pilots?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center">No pilots have registered yet.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </AppLayout>
+    <div className="space-y-6 p-6">
+      <CardHeader>
+        <CardTitle className="text-2xl">Verify Pilots</CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        {loading && (
+          <div className="flex items-center gap-2">
+            <Loader2 className="animate-spin" /> Loading...
+          </div>
+        )}
+
+        {error && <div className="text-red-500">Error: {error}</div>}
+
+        {!loading && pilots.length === 0 && <div>No pilots found.</div>}
+
+        <div className="grid gap-4">
+          {pilots.map((p) => (
+            <div key={p.id} className="p-4 border rounded-md flex items-center justify-between">
+              <div>
+                <div className="font-medium">{p.name ?? '—'}</div>
+                <div className="text-sm text-muted-foreground">{p.email}</div>
+                <div className="text-sm">License: {p.licenseNumber ?? '—'}</div>
+                <div className="text-sm">Vehicle: {p.vehicleNumber ?? '—'}</div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="text-sm mr-4">
+                  {p.isVerified ? <span className="text-green-600">Verified</span> : <span className="text-yellow-600">Pending</span>}
+                </div>
+                <Button size="sm" onClick={() => changeVerification(p.id, true)} disabled={loading || p.isVerified}>
+                  Approve
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => changeVerification(p.id, false)} disabled={loading || !p.isVerified}>
+                  Revoke
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </div>
   );
 }
