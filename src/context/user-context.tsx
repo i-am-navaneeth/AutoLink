@@ -36,7 +36,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const loadAppUser = async (id: string) => {
     try {
       const { data, error: e } = await supabase
-        .from<AppUser>('users')
+        .from('users')
         .select('*')
         .eq('id', id)
         .single();
@@ -45,8 +45,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setAppUser(null);
         return null;
       } else {
-        setAppUser(data ?? null);
-        return data ?? null;
+        setAppUser((data as AppUser) ?? null);
+        return (data as AppUser) ?? null;
       }
     } catch (err: any) {
       console.error('loadAppUser error', err);
