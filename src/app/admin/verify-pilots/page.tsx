@@ -97,7 +97,7 @@ export default function VerifyPilotsPage() {
                 <div className="text-sm mr-4">
                   {p.isVerified ? <span className="text-green-600">Verified</span> : <span className="text-yellow-600">Pending</span>}
                 </div>
-                <Button size="sm" onClick={() => changeVerification(p.id, true)} disabled={loading || p.isVerified}>
+                <Button size="sm" onClick={() => changeVerification(p.id, true)} disabled={loading || !!p.isVerified}>
                   Approve
                 </Button>
                 <Button size="sm" variant="destructive" onClick={() => changeVerification(p.id, false)} disabled={loading || !p.isVerified}>
