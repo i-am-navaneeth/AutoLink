@@ -1,11 +1,13 @@
-// src/app/email-login/page.tsx  (or wherever you want)
-'use client';
-import EmailOtpForm from '@/components/auth/EmailOtpForm';
+// src/app/email-login/page.tsx
+import EmailLoginForm from '@/components/auth/email-login-form';
 
 export default function EmailLoginPage() {
   return (
-    <div className="p-6">
-      <EmailOtpForm />
-    </div>
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        <h1 className="text-2xl font-semibold mb-4 text-center">Get Started</h1>
+        <EmailLoginForm />
+      </div>
+    </main>
   );
 }

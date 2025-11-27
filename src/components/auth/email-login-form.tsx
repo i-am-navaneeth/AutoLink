@@ -1,107 +1,69 @@
+// src/components/auth/email-login-form.tsx
 'use client';
+import React, { useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mail, KeyRound, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-
-export function EmailLoginForm() {
-  const { toast } = useToast();
-  const router = useRouter();
-
+export default function EmailLoginForm(): JSX.Element {
+  const supabase = createClientComponentClient();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      toast({
-        title: 'Invalid Input',
-        description: 'Please enter both email and password.',
-        variant: 'destructive',
-      });
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) {
+      alert('Enter email');
       return;
     }
 
     setLoading(true);
-
     try {
-      // Supabase Auth Login
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const redirectTo =
+        (process.env.NEXT_PUBLIC_SITE_URL as string) || window.location.origin;
+
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
-        password,
+        options: { emailRedirectTo: `${redirectTo}/auth/callback` },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('signInWithOtp error', error);
+        alert(error.message || JSON.stringify(error));
+        return;
+      }
 
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back to AutoLink!',
-      });
-
-      router.push('/home');
+      alert('Magic link sent — check your inbox.');
+      setEmail('');
     } catch (err: any) {
-      toast({
-        title: 'Login Failed',
-        description: err.message || 'Unknown error',
-        variant: 'destructive',
-      });
+      console.error(err);
+      alert(err?.message || JSON.stringify(err));
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <>
-      <CardHeader className="p-0 mb-6">
-        <CardTitle className="font-headline text-2xl">Email Login</CardTitle>
-        <CardDescription>Enter your credentials to access your account.</CardDescription>
-      </CardHeader>
+    <form onSubmit={onSubmit} className="max-w-md w-full">
+      <label className="block text-sm font-medium mb-2">Email</label>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        className="w-full px-4 py-3 border rounded mb-4"
+        placeholder="you@example.com"
+      />
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              placeholder="john.doe@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10"
-              disabled={loading}
-            />
-          </div>
-        </div>
+      <button
+        type="submit"
+        className="w-full bg-yellow-500 text-white py-3 rounded disabled:opacity-60"
+        disabled={loading}
+      >
+        {loading ? 'Sending...' : 'Login with Email'}
+      </button>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              id="password"
-              type="password"
-              placeholder="Your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10"
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        <Button onClick={handleLogin} className="w-full" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Login
-        </Button>
-      </div>
-    </>
+      <p className="text-xs text-center mt-3">
+        New to AutoLink? Enter your email — we’ll create your account.
+      </p>
+    </form>
   );
 }

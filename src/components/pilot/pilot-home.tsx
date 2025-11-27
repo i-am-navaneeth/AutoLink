@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useUser } from '@/context/user-context';
+// removed importing useUser from context because '@/context/user-context' does not export it
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -19,9 +19,27 @@ type PilotRow = {
 };
 
 export default function PilotHome() {
-  const { supabaseUser } = useUser();
+  const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
   const [pilot, setPilot] = useState<PilotRow | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // load the currently authenticated user from Supabase (replaces useUser from context)
+  useEffect(() => {
+    let mounted = true;
+    const loadAuthUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (error) {
+        console.error('Failed to get auth user', error);
+        setSupabaseUser(null);
+      } else {
+        setSupabaseUser((data as any).user ?? null);
+      }
+    };
+
+    loadAuthUser();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
