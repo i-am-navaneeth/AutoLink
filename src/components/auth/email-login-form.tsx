@@ -20,10 +20,15 @@ export default function EmailLoginForm(): JSX.Element {
       const redirectTo =
         (process.env.NEXT_PUBLIC_SITE_URL as string) || window.location.origin;
 
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${redirectTo}/auth/callback` },
-      });
+      console.log('BEFORE signInWithOtp - localStorage keys:', Object.keys(localStorage));
+
+const { data, error } = await supabase.auth.signInWithOtp({
+  email,
+  options: { emailRedirectTo: `${redirectTo}/auth/callback` },
+});
+
+console.log('AFTER signInWithOtp - localStorage keys:', Object.keys(localStorage));
+console.log('signInWithOtp result ->', { data, error });
 
       if (error) {
         console.error('signInWithOtp error', error);
