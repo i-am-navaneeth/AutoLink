@@ -8,27 +8,28 @@ export default function EmailLoginForm(): JSX.Element {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // use click handler (avoid native form submit navigation)
+  async function sendMagicLink() {
     if (!email) {
       alert('Enter email');
       return;
     }
-
     setLoading(true);
     try {
+      // debug - show storage keys before request
+      console.log('BEFORE signInWithOtp - localStorage keys:', Object.keys(localStorage));
+
       const redirectTo =
         (process.env.NEXT_PUBLIC_SITE_URL as string) || window.location.origin;
 
-      console.log('BEFORE signInWithOtp - localStorage keys:', Object.keys(localStorage));
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${redirectTo}/auth/callback` },
+      });
 
-const { data, error } = await supabase.auth.signInWithOtp({
-  email,
-  options: { emailRedirectTo: `${redirectTo}/auth/callback` },
-});
-
-console.log('AFTER signInWithOtp - localStorage keys:', Object.keys(localStorage));
-console.log('signInWithOtp result ->', { data, error });
+      // debug after request
+      console.log('AFTER signInWithOtp - localStorage keys:', Object.keys(localStorage));
+      console.log('signInWithOtp result ->', { data, error });
 
       if (error) {
         console.error('signInWithOtp error', error);
@@ -36,7 +37,7 @@ console.log('signInWithOtp result ->', { data, error });
         return;
       }
 
-      alert('Magic link sent — check your inbox.');
+      alert('Magic link sent — check your inbox. Open link in same browser/tab.');
       setEmail('');
     } catch (err: any) {
       console.error(err);
@@ -47,7 +48,7 @@ console.log('signInWithOtp result ->', { data, error });
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-md w-full">
+    <div className="max-w-md w-full">
       <label className="block text-sm font-medium mb-2">Email</label>
       <input
         type="email"
@@ -59,7 +60,8 @@ console.log('signInWithOtp result ->', { data, error });
       />
 
       <button
-        type="submit"
+        type="button"
+        onClick={sendMagicLink}
         className="w-full bg-yellow-500 text-white py-3 rounded disabled:opacity-60"
         disabled={loading}
       >
@@ -69,6 +71,6 @@ console.log('signInWithOtp result ->', { data, error });
       <p className="text-xs text-center mt-3">
         New to AutoLink? Enter your email — we’ll create your account.
       </p>
-    </form>
+    </div>
   );
 }
