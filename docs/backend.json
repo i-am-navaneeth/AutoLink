@@ -21,10 +21,6 @@
           "type": "string",
           "description": "The user's full name."
         },
-        "phone": {
-          "type": "string",
-          "description": "The user's phone number."
-        },
         "email": {
           "type": "string",
           "format": "email",

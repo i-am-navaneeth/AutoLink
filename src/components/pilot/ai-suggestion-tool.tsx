@@ -56,15 +56,13 @@ export default function AiSuggestionTool({
       try {
         const result = await suggestRouteAndPrice(input);
         setSuggestion(result);
-      } catch (e) {
-        console.error(e);
-        setError('Failed to get suggestion from AI. Please try again.');
-        toast({
-            title: 'Error',
-            description: 'Could not fetch AI suggestion.',
-            variant: 'destructive',
-        })
-      }
+      } catch (err) {
+  const message =
+    err instanceof Error ? err.message : 'Unknown error';
+
+  console.error(message);
+}
+
     });
   };
 

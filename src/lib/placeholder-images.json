@@ -5,36 +5,7 @@
       "description": "A dynamic image of a city street with auto-rickshaws and cars, representing the core service of AutoLink.",
       "imageUrl": "https://images.unsplash.com/photo-1617121346253-43ef95179ac9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaXR5JTIwc3RyZWV0fGVufDB8fHx8MTc2MzI5NTM3NHww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "city street"
-    },
-    {
-      "id": "user-avatar-1",
-      "description": "Avatar for Alex Doe",
-      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjMzODMwNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "person portrait"
-    },
-    {
-      "id": "user-avatar-2",
-      "description": "Avatar for Sarah Connor",
-      "imageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjMzODMwNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "person portrait"
-    },
-    {
-      "id": "user-avatar-3",
-      "description": "Avatar for John Ryder",
-      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjMzODMwNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "person portrait"
-    },
-    {
-      "id": "user-avatar-4",
-      "description": "Avatar for Ben Stokes",
-      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjMzODMwNzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "person portrait"
-    },
-    {
-      "id": "vehicle-photo-1",
-      "description": "Photo of an auto-rickshaw",
-      "imageUrl": "https://images.unsplash.com/photo-1626149637281-4e227308da18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhdXRvJTIwcmlja3NoYXd8ZW58MHx8fHwxNzYzMjg1OTEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "auto rickshaw"
     }
+    
   ]
 }

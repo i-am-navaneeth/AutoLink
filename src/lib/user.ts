@@ -1,50 +1,50 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from '@/lib/supabase/client';
 
 export async function createOrUpdateUser(
   id: string,
-  role: "passenger" | "pilot",
+  role: 'passenger' | 'pilot',
   full_name: string | null,
-  phone: string | null,
   email: string | null,
   avatar_url: string | null
 ) {
-  // First try to update the user
+  // 🔁 Try UPDATE first
   const { error: updateError } = await supabase
-    .from("users")
+    .from('users')
     .update({
       role,
       full_name,
-      phone,
       email,
       avatar_url,
+      updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq('id', id);
 
-  // If no row was updated → insert new user
-  if (updateError) {
-    console.error("Update error:", updateError);
+  // ✅ If update worked, exit
+  if (!updateError) {
+    return;
   }
 
-  const { data: existingUser, error: fetchError } = await supabase
-    .from("users")
-    .select("id")
-    .eq("id", id)
-    .single();
+  // 🔁 If update failed (row not found), INSERT
+  const { error: insertError } = await supabase
+    .from('users')
+    .insert({
+      id,
+      role,
+      full_name,
+      email,
+      avatar_url,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
 
-  if (fetchError || !existingUser) {
-    const { error: insertError } = await supabase.from("users").insert([
-      {
-        id,
-        role,
-        full_name,
-        phone,
-        email,
-        avatar_url,
-      },
-    ]);
+  if (insertError) {
+    // ✅ Type-safe, Next.js-safe logging
+    console.error(
+      insertError instanceof Error
+        ? insertError.message
+        : 'Failed to create user'
+    );
 
-    if (insertError) {
-      console.error("Insert error:", insertError);
-    }
+    throw insertError;
   }
 }

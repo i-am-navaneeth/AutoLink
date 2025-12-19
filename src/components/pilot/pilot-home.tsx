@@ -1,93 +1,120 @@
-// src/components/pilot/pilot-home.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-// removed importing useUser from context because '@/context/user-context' does not export it
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { supabase } from '@/lib/supabase/client';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type PilotRow = {
   id: string;
-  name?: string;
-  email?: string;
-  isVerified?: boolean;
-  vehicleType?: string;
-  vehicleNumber?: string;
-  // extend with your pilot columns...
+  name?: string | null;
+  email?: string | null;
+  is_verified?: boolean | null;
+  vehicle_type?: string | null;
+  vehicle_number?: string | null;
 };
 
 export default function PilotHome() {
-  const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
-  const [pilot, setPilot] = useState<PilotRow | null>(null);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  // load the currently authenticated user from Supabase (replaces useUser from context)
+  const [authUser, setAuthUser] = useState<any | null>(null);
+  const [pilot, setPilot] = useState<PilotRow | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 1️⃣ Get authenticated user
   useEffect(() => {
     let mounted = true;
-    const loadAuthUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
+
+    const loadUser = async () => {
+      const { data, error } =
+        await supabase.auth.getUser();
+
       if (!mounted) return;
+
       if (error) {
-        console.error('Failed to get auth user', error);
-        setSupabaseUser(null);
+       console.error(error.message);
+       return;
       } else {
-        setSupabaseUser((data as any).user ?? null);
+        setAuthUser(data.user ?? null);
       }
     };
 
-    loadAuthUser();
-    return () => { mounted = false; };
+    loadUser();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  // 2️⃣ Load pilot profile
   useEffect(() => {
     let mounted = true;
+
     const loadPilot = async () => {
-      if (!supabaseUser) {
+      if (!authUser) {
         setPilot(null);
+        setLoading(false);
         return;
       }
+
       setLoading(true);
+
       const { data, error } = await supabase
         .from('pilots')
         .select('*')
-        .eq('id', supabaseUser.id)
+        .eq('id', authUser.id)
         .single();
 
       if (!mounted) return;
+
       if (error) {
-        console.error('Fetch pilot error', error);
-        setPilot(null);
-      } else {
-        setPilot(data ?? null);
+       console.error(error.message);
+       return;
+       } else {
+        setPilot(data);
       }
+
       setLoading(false);
     };
 
     loadPilot();
-    return () => { mounted = false; };
-  }, [supabaseUser]);
 
-  if (!supabaseUser) {
+    return () => {
+      mounted = false;
+    };
+  }, [authUser]);
+
+  if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Not signed in</CardTitle>
-          <CardDescription>Please sign in to view your pilot dashboard.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">You must be logged in to access pilot features.</p>
+        <CardContent className="flex items-center justify-center p-6">
+          <Loader2 className="animate-spin" />
         </CardContent>
       </Card>
     );
   }
 
-  if (loading) {
+  if (!authUser) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center">
-          <Loader2 className="animate-spin" />
+        <CardHeader>
+          <CardTitle>Not signed in</CardTitle>
+          <CardDescription>
+            Please log in to access the pilot dashboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => router.push('/login')}>
+            Go to Login
+          </Button>
         </CardContent>
       </Card>
     );
@@ -98,11 +125,21 @@ export default function PilotHome() {
       <Card>
         <CardHeader>
           <CardTitle>Welcome</CardTitle>
-          <CardDescription>No pilot profile found</CardDescription>
+          <CardDescription>
+            Pilot profile not found
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">We couldn't find your pilot profile. Please complete your onboarding.</p>
-          <Button onClick={() => { /* navigate to registration */ }}>Complete Onboarding</Button>
+          <p className="mb-4">
+            Please complete pilot onboarding to continue.
+          </p>
+          <Button
+            onClick={() =>
+              router.push('/pilot-register')
+            }
+          >
+            Complete Onboarding
+          </Button>
         </CardContent>
       </Card>
     );
@@ -111,14 +148,27 @@ export default function PilotHome() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome, {pilot.name ?? 'Pilot'}</CardTitle>
-        <CardDescription>Pilot dashboard</CardDescription>
+        <CardTitle>
+          Welcome, {pilot.name ?? 'Pilot'}
+        </CardTitle>
+        <CardDescription>
+          Pilot dashboard
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div><strong>Verified:</strong> {pilot.isVerified ? 'Yes' : 'No'}</div>
-          <div><strong>Vehicle:</strong> {pilot.vehicleType ?? '—'} {pilot.vehicleNumber ?? ''}</div>
-          <div><strong>Email:</strong> {pilot.email ?? '—'}</div>
+
+      <CardContent className="space-y-2">
+        <div>
+          <strong>Verified:</strong>{' '}
+          {pilot.is_verified ? 'Yes' : 'Pending'}
+        </div>
+        <div>
+          <strong>Vehicle:</strong>{' '}
+          {pilot.vehicle_type ?? '—'}{' '}
+          {pilot.vehicle_number ?? ''}
+        </div>
+        <div>
+          <strong>Email:</strong>{' '}
+          {pilot.email ?? '—'}
         </div>
       </CardContent>
     </Card>

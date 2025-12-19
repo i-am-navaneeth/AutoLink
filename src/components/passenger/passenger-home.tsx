@@ -174,26 +174,7 @@ export default function PassengerHome() {
           <AcceptedRideCard ride={acceptedRide} onCancel={handleCancelRide} />
       )}
 
-      <div className="mt-8 text-center">
-        <div className="inline-block">
-            {isLoading ? (
-                <div className='flex flex-col items-center gap-2'>
-                    <Skeleton className="h-8 w-32" />
-                    <Skeleton className="h-5 w-48" />
-                </div>
-            ) : (
-                 <>
-                    <h3 className="text-2xl font-bold font-headline text-foreground/50">
-                    AutoLink
-                    </h3>
-                    <p className="flex items-center gap-2 justify-center text-muted-foreground/50">
-                    where tech meets tuktuk...
-                    <Car className="h-5 w-5" />
-                    </p>
-                </>
-            )}
-        </div>
-      </div>
+      
     </div>
   );
 }

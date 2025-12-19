@@ -1,171 +1,174 @@
-// src/context/user-context.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useRouter } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
 
-export type AppUser = {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  role?: 'passenger' | 'pilot' | 'admin' | string | null;
-};
+import { supabase } from '@/lib/supabase/client';
+import type { RideRequest } from '@/lib/types';
 
-type UserContextValue = {
-  supabaseUser: any | null;
-  appUser: AppUser | null;
+export type UserType = 'passenger' | 'pilot' | 'admin' | null;
+
+interface UserContextType {
+  user: User | null;
+  userType: UserType;
   loading: boolean;
-  error: string | null;
+
+  setUserType: (userType: UserType) => void;
+  logout: () => Promise<void>;
+
   isSearching: boolean;
-  setIsSearching: (v: boolean) => void;
-  signOut: () => Promise<void>;
-};
+  setIsSearching: (isSearching: boolean) => void;
 
-const UserContext = createContext<UserContextValue | undefined>(undefined);
+  isRideLive: boolean;
+  setIsRideLive: (isRideLive: boolean) => void;
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+  isQuickRideLive: boolean;
+  setIsQuickRideLive: (isQuickRideLive: boolean) => void;
+
+  passengerCount: number;
+  setPassengerCount: (count: number) => void;
+
+  quickRideRequest: RideRequest | null;
+  setQuickRideRequest: (request: RideRequest | null) => void;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+export function UserProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
-  const [appUser, setAppUser] = useState<AppUser | null>(null);
+
+  // 🔐 Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // 🚕 Ride state (kept from your original code)
   const [isSearching, setIsSearching] = useState(false);
+  const [isRideLive, setIsRideLive] = useState(false);
+  const [isQuickRideLive, setIsQuickRideLive] = useState(false);
+  const [passengerCount, setPassengerCount] = useState(0);
+  const [quickRideRequest, setQuickRideRequest] =
+    useState<RideRequest | null>(null);
 
-  // helper to load the app user row from "users" table
-  const loadAppUser = async (id: string) => {
-    try {
-      const { data, error: e } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (e) {
-        console.warn('Could not load app user row', e);
-        setAppUser(null);
-        return null;
-      } else {
-        setAppUser((data as AppUser) ?? null);
-        return (data as AppUser) ?? null;
-      }
-    } catch (err: any) {
-      console.error('loadAppUser error', err);
-      setAppUser(null);
-      setError(String(err?.message ?? err));
-      return null;
-    }
+  // ✅ Fetch user role from Supabase `users` table
+  const loadUserRole = async (authUser: User) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', authUser.id)
+      .maybeSingle();
+
+    if (error) {
+  console.error('Failed to fetch user role:', error.message);
+  setUserType('passenger');
+  return;
+}
+
+if (!data) {
+  // user row not created yet
+  setUserType('passenger');
+  return;
+}
+
+setUserType(data.role);
+
   };
 
-  // Helper to perform role-based redirect
-  const redirectByRole = (u: AppUser | null) => {
-    if (!u || !u.role) {
-      // default landing for unknown roles
-      router.push('/');
-      return;
-    }
-    switch (u.role) {
-      case 'pilot':
-        router.push('/pilot-dashboard');
-        break;
-      case 'passenger':
-        router.push('/quick-rides');
-        break;
-      case 'admin':
-        router.push('/admin/verify-pilots');
-        break;
-      default:
-        router.push('/');
-        break;
-    }
-  };
-
+  // 🔁 Initial session + auth listener
   useEffect(() => {
-    let mounted = true;
+    // 1️⃣ Initial session
+    supabase.auth.getSession().then(async ({ data }) => {
+      const sessionUser = data.session?.user ?? null;
+      setUser(sessionUser);
 
-    const init = async () => {
-      setLoading(true);
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        const user = session?.user ?? null;
-        if (!mounted) return;
-        setSupabaseUser(user);
-        if (user) {
-          const loaded = await loadAppUser(user.id);
-          // If a user row exists, optionally redirect after initial load
-          if (loaded) redirectByRole(loaded);
-        } else {
-          setAppUser(null);
-        }
-      } catch (err: any) {
-        console.error('Error reading initial session', err);
-        setError(String(err?.message ?? err));
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    init();
-
-    // Subscribe to auth changes and redirect after sign-in
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user ?? null;
-      setSupabaseUser(user);
-      setError(null);
-
-      if (user) {
-        setLoading(true);
-        const loaded = await loadAppUser(user.id);
-        setLoading(false);
-
-        // Only redirect on explicit sign-in events (SIGNED_IN) and if we have appUser
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          redirectByRole(loaded);
-        }
+      if (sessionUser) {
+        await loadUserRole(sessionUser);
       } else {
-        setAppUser(null);
+        setUserType(null);
       }
+
+      setLoading(false);
     });
 
-    return () => {
-      mounted = false;
-      try {
-        listener.subscription.unsubscribe();
-      } catch {
-        // ignore
+    // 2️⃣ Auth state changes
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
+
+        if (sessionUser) {
+          await loadUserRole(sessionUser);
+        } else {
+          setUserType(null);
+        }
+
+        setLoading(false);
       }
+    );
+
+    return () => {
+      subscription.subscription.unsubscribe();
     };
   }, []);
 
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      setSupabaseUser(null);
-      setAppUser(null);
-      router.push('/');
-    } catch (err: any) {
-      console.error('Sign out failed', err);
-      setError(String(err?.message ?? err));
-    }
+  // 🔓 Logout (Supabase)
+  const logout = async () => {
+    await supabase.auth.signOut();
+
+    // reset app state
+    setUser(null);
+    setUserType(null);
+    setIsSearching(false);
+    setIsRideLive(false);
+    setIsQuickRideLive(false);
+    setPassengerCount(0);
+    setQuickRideRequest(null);
+
+    router.push('/login');
   };
 
-  const value: UserContextValue = {
-    supabaseUser,
-    appUser,
-    loading,
-    error,
-    isSearching,
-    setIsSearching,
-    signOut,
-  };
+  return (
+    <UserContext.Provider
+      value={{
+        user,
+        userType,
+        loading,
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+        setUserType,
+        logout,
+
+        isSearching,
+        setIsSearching,
+
+        isRideLive,
+        setIsRideLive,
+
+        isQuickRideLive,
+        setIsQuickRideLive,
+
+        passengerCount,
+        setPassengerCount,
+
+        quickRideRequest,
+        setQuickRideRequest,
+      }}
+    >
+      {children}
+    </UserContext.Provider>
+  );
 }
 
 export function useUser() {
-  const ctx = useContext(UserContext);
-  if (!ctx) throw new Error('useUser must be used inside <UserProvider>');
-  return ctx;
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error('useUser must be used within UserProvider');
+  }
+  return context;
 }
