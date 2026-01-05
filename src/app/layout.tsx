@@ -1,15 +1,34 @@
 // src/app/layout.tsx
 import './globals.css';
-import { UserProvider } from '@/context/user-context';
 import React from 'react';
+import Script from 'next/script';
 
-export const metadata = { title: 'AutoLink', description: 'Where tech meets tuktuk...!' };
+import { UserProvider } from '@/context/user-context';
+import { ThemeProvider } from '@/components/theme-provider';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const metadata = {
+  title: 'AutoLink',
+  description: 'Where tech meets tuktuk',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+          strategy="afterInteractive"
+        />
+      </head>
+
       <body>
-        <UserProvider>{children}</UserProvider>
+        <ThemeProvider>
+          <UserProvider>{children}</UserProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -19,7 +19,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { useToast } from '@/hooks/use-toast';
-import { Camera, LogOut } from 'lucide-react';
+import {
+  Camera,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,10 +38,18 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function ProfilePage() {
-  const { user: authUser, userType, logout, isRideLive, passengerCount } =
-    useUser();
+  const {
+    user: authUser,
+    userType,
+    pilotVerificationStatus,
+    logout,
+    isRideLive,
+    passengerCount,
+  } = useUser();
+
   const { toast } = useToast();
   const isPilot = userType === 'pilot';
+  const isLocked = isPilot && pilotVerificationStatus === 'approved';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,31 +60,34 @@ export default function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // 🔽 Load profile
+  /* ---------------- LOAD PROFILE ---------------- */
   useEffect(() => {
     if (!authUser) return;
 
     const loadProfile = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
-        .select('full_name, phone, license, vehicle_number, avatar_url')
+        .select(
+          'full_name, phone, license, vehicle_number, avatar_url'
+        )
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
-      if (error) return;
+      if (!data) return;
 
-      setFullName(data?.full_name ?? '');
-      setMobile(data?.phone ?? '');
-      setLicense(data?.license ?? '');
-      setVehicleNumber(data?.vehicle_number ?? '');
-      setAvatarUrl(data?.avatar_url ?? null);
+      setFullName(data.full_name ?? '');
+      setMobile(data.phone ?? '');
+      setLicense(data.license ?? '');
+      setVehicleNumber(data.vehicle_number ?? '');
+      setAvatarUrl(data.avatar_url ?? null);
     };
 
     loadProfile();
   }, [authUser]);
 
-  // 📸 Avatar upload
+  /* ---------------- AVATAR UPLOAD ---------------- */
   const handleAvatarClick = () => {
+    if (isLocked) return;
     fileInputRef.current?.click();
   };
 
@@ -109,48 +125,58 @@ export default function ProfilePage() {
       .eq('id', authUser.id);
 
     setAvatarUrl(publicUrl);
-
     toast({ title: 'Avatar updated' });
   };
 
-  // 💾 Save profile
+  /* ---------------- SAVE PROFILE ---------------- */
   const handleSaveChanges = async () => {
-    if (!authUser) return;
+  if (!authUser) return;
 
-    setSaving(true);
+  setSaving(true);
 
-    const { data, error } = await supabase
+  try {
+    /* ---------- UPDATE USERS (ALL ROLES) ---------- */
+    const { error: userError } = await supabase
       .from('users')
       .update({
         full_name: fullName,
         phone: mobile,
-        license: isPilot ? license : null,
-        vehicle_number: isPilot ? vehicleNumber : null,
       })
-      .eq('id', authUser.id)
-      .select()
-      .single();
+      .eq('id', authUser.id);
 
-    setSaving(false);
+    if (userError) throw userError;
 
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Update failed',
-        description: error.message,
-      });
-      return;
+    /* ---------- UPDATE PILOT DATA (ONLY IF PILOT) ---------- */
+    if (isPilot) {
+      const { error: pilotError } = await supabase
+        .from('pilots')
+        .update({
+          license,
+          vehicle_number: vehicleNumber,
+        })
+        .eq('id', authUser.id);
+
+      if (pilotError) throw pilotError;
     }
 
-    console.log('UPDATED USER:', data);
-
     toast({
-      title: 'Profile Updated',
+      title: 'Profile updated',
       description: 'Changes saved successfully.',
     });
-  };
+  } catch (err) {
+    toast({
+      variant: 'destructive',
+      title: 'Update failed',
+      description:
+        err instanceof Error ? err.message : 'Permission denied',
+    });
+  } finally {
+    setSaving(false);
+  }
+};
 
-  const handleLogout = () => {
+  /* ---------------- LOGOUT ---------------- */
+  const handleLogout = async () => {
     if (isPilot && isRideLive && passengerCount > 0) {
       toast({
         variant: 'destructive',
@@ -159,18 +185,49 @@ export default function ProfilePage() {
       });
       return;
     }
-    logout();
+    await logout();
+  };
+
+  /* ---------------- PILOT BADGE ---------------- */
+  const PilotBadge = () => {
+    if (!isPilot) return null;
+
+    if (pilotVerificationStatus === 'approved') {
+      return (
+        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+          <CheckCircle className="h-4 w-4" />
+          Pilot Verified
+        </div>
+      );
+    }
+
+    if (pilotVerificationStatus === 'rejected') {
+      return (
+        <div className="flex items-center gap-2 text-red-600 text-sm font-medium">
+          <XCircle className="h-4 w-4" />
+          Verification Rejected
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2 text-yellow-600 text-sm font-medium">
+        <Clock className="h-4 w-4" />
+        Verification Pending
+      </div>
+    );
   };
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">My Profile</CardTitle>
             <CardDescription>
               Manage your personal information and account settings.
             </CardDescription>
+            <PilotBadge />
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -188,6 +245,7 @@ export default function ProfilePage() {
                   size="icon"
                   className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
                   onClick={handleAvatarClick}
+                  disabled={isLocked}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
@@ -217,6 +275,7 @@ export default function ProfilePage() {
                 <Input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  disabled={isLocked}
                 />
               </div>
 
@@ -225,6 +284,7 @@ export default function ProfilePage() {
                 <Input
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
+                  disabled={isLocked}
                 />
               </div>
 
@@ -237,20 +297,12 @@ export default function ProfilePage() {
                 <>
                   <div>
                     <Label>License</Label>
-                    <Input
-                      value={license}
-                      onChange={(e) => setLicense(e.target.value)}
-                    />
+                    <Input value={license} disabled />
                   </div>
 
                   <div>
                     <Label>Vehicle Number</Label>
-                    <Input
-                      value={vehicleNumber}
-                      onChange={(e) =>
-                        setVehicleNumber(e.target.value)
-                      }
-                    />
+                    <Input value={vehicleNumber} disabled />
                   </div>
                 </>
               )}
@@ -260,11 +312,9 @@ export default function ProfilePage() {
           <CardFooter className="flex justify-between gap-4">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
+                <Button variant="outline">Logout</Button>
               </AlertDialogTrigger>
+
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
@@ -274,9 +324,16 @@ export default function ProfilePage() {
                     You’ll be redirected to login.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout}>
+                  <AlertDialogCancel>
+                    Cancel
+                  </AlertDialogCancel>
+
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
                     Yes
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -286,7 +343,7 @@ export default function ProfilePage() {
             <Button
               type="button"
               onClick={handleSaveChanges}
-              disabled={saving}
+              disabled={saving || isLocked}
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>

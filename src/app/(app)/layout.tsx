@@ -1,25 +1,25 @@
 'use client';
 
-import { AppLayout } from '@/components/layout/app-layout';
+import React from 'react';
 import { useUser } from '@/context/user-context';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { AppLayout } from '@/components/layout/app-layout';
+import { Toaster } from '@/components/ui/toaster';
 
 export default function AppGroupLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useUser();
-  const router = useRouter();
+  const { loading, user } = useUser();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
-    }
-  }, [loading, user, router]);
+  // 🔒 CRITICAL GUARD
+  if (loading) return null;
+  if (!user) return null;
 
-  if (loading || !user) return null;
-
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <>
+      <AppLayout>{children}</AppLayout>
+      <Toaster />
+    </>
+  );
 }

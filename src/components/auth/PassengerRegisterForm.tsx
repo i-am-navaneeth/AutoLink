@@ -31,6 +31,7 @@ export default function PassengerRegisterForm({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (
@@ -56,7 +57,6 @@ export default function PassengerRegisterForm({
         options: {
           data: {
             full_name: fullName || 'Passenger',
-            role: 'passenger',
           },
         },
       });
@@ -64,12 +64,12 @@ export default function PassengerRegisterForm({
       if (error) throw error;
       if (!data.user) throw new Error('Signup failed');
 
-      // 2️⃣ Create app user row
+      // 2️⃣ Create users table row
       const { error: profileError } = await supabase
         .from('users')
         .insert({
           id: data.user.id,
-          name: fullName || 'Passenger',
+          full_name: fullName || 'Passenger',
           email: data.user.email,
           role: 'passenger',
           avatar_url: DEFAULT_AVATAR_URL,
@@ -77,15 +77,28 @@ export default function PassengerRegisterForm({
 
       if (profileError) throw profileError;
 
+      // 3️⃣ Apply referral (SILENT, OPTIONAL)
+      if (referralCode.trim()) {
+        await fetch('/api/referrals/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            referralCode: referralCode.trim(),
+          }),
+        });
+      }
+
       toast({
         title: 'Account created',
         description: 'Welcome to AutoLink!',
       });
 
+      await supabase.auth.refreshSession();
       router.push('/quick-rides');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Unknown error';
+
       console.error(message);
 
       toast({
@@ -150,6 +163,19 @@ export default function PassengerRegisterForm({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+
+        {/* 🔗 REFERRAL CODE (OPTIONAL) */}
+        <div className="space-y-2">
+          <Label>Referral Code (Optional)</Label>
+          <Input
+            placeholder="Enter pilot referral code"
+            value={referralCode}
+            onChange={(e) =>
+              setReferralCode(e.target.value.toUpperCase())
+            }
             disabled={loading}
           />
         </div>

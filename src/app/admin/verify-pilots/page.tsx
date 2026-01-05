@@ -1,172 +1,173 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { createClient } from '@supabase/supabase-js';
 import {
+  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type PilotRow = {
   id: string;
-  name: string | null;
-  email: string | null;
-  is_verified: boolean;
-  license_number: string | null;
-  vehicle_number: string | null;
+  verification_status: 'pending' | 'approved' | 'rejected';
+  documents: Record<string, string> | null; // FILE PATHS ONLY
+  users: {
+    email: string | null;
+    full_name: string | null;
+  } | null;
 };
 
-export default function VerifyPilotsPage() {
-  const [loading, setLoading] = useState(false);
-  const [pilots, setPilots] = useState<PilotRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-  const fetchPilots = async () => {
-    setLoading(true);
-    setError(null);
+/* 🔐 SIGNED URL GENERATOR (SERVER ONLY) */
+async function getSignedUrl(path: string) {
+  const { data, error } = await supabase.storage
+    .from('pilot-docs')
+    .createSignedUrl(path, 60 * 10); // 10 minutes
 
-    try {
-      const res = await fetch('/api/admin/pilots');
+  if (error) {
+    console.error('Signed URL error:', error.message);
+    return null;
+  }
 
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || 'Failed to load pilots');
-      }
-
-      setPilots(json.data ?? []);
-    }catch (err) {
-  const message =
-    err instanceof Error ? err.message : 'Unknown error';
-
-  console.error(message);
+  return data.signedUrl;
 }
- finally {
-      setLoading(false);
-    }
+
+export default async function VerifyPilotsPage() {
+  const { data, error } = await supabase
+    .from('pilots')
+    .select(`
+      id,
+      verification_status,
+      documents,
+      users (
+        email,
+        full_name
+      )
+    `)
+    .order('created_at', { ascending: false })
+    .returns<PilotRow[]>();
+
+  if (error) {
+    return (
+      <div className="p-6 text-red-600">
+        Error loading pilots: {error.message}
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="p-6 text-muted-foreground">
+        No pilots found.
+      </div>
+    );
+  }
+
+  const DOC_LABELS: Record<string, string> = {
+    driving_license: 'Driving License',
+    vehicle_rc: 'Vehicle RC',
+    insurance: 'Insurance',
+    government_id: 'Government ID',
+    profile_photo: 'Profile Photo',
   };
 
-  useEffect(() => {
-    fetchPilots();
-  }, []);
+  const cards = await Promise.all(
+    data.map(async (p) => {
+      const signedDocs: Record<string, string | null> = {};
 
-  const changeVerification = async (
-    id: string,
-    approve: boolean
-  ) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/admin/verify-pilot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, approve }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || 'Update failed');
+      for (const key of Object.keys(DOC_LABELS)) {
+        const path = p.documents?.[key];
+        signedDocs[key] = path
+          ? await getSignedUrl(path)
+          : null;
       }
 
-      await fetchPilots();
-    } catch (err) {
-  const message =
-    err instanceof Error ? err.message : 'Unknown error';
+      return (
+        <Card key={p.id}>
+          <CardHeader>
+            <CardTitle>
+              {p.users?.full_name ?? '—'}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {p.users?.email ?? '—'}
+            </p>
+          </CardHeader>
 
-  console.error(message);
-}
- finally {
-      setLoading(false);
-    }
-  };
+          <CardContent className="space-y-4">
+            <div className="text-sm">
+              Status:{' '}
+              <strong>{p.verification_status}</strong>
+            </div>
 
-  return (
-    <div className="space-y-6 p-6">
-      <CardHeader>
-        <CardTitle className="text-2xl">
-          Verify Pilots
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {loading && (
-          <div className="flex items-center gap-2">
-            <Loader2 className="animate-spin" />
-            Loading...
-          </div>
-        )}
-
-        {error && (
-          <div className="text-red-500">
-            Error: {error}
-          </div>
-        )}
-
-        {!loading && pilots.length === 0 && (
-          <div>No pilots found.</div>
-        )}
-
-        <div className="grid gap-4">
-          {pilots.map((p) => (
-            <div
-              key={p.id}
-              className="p-4 border rounded-md flex items-center justify-between"
-            >
-              <div>
-                <div className="font-medium">
-                  {p.name ?? '—'}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {p.email}
-                </div>
-                <div className="text-sm">
-                  License: {p.license_number ?? '—'}
-                </div>
-                <div className="text-sm">
-                  Vehicle: {p.vehicle_number ?? '—'}
-                </div>
+            {/* 📄 DOCUMENT PREVIEW */}
+            <div className="border rounded-md p-3 space-y-2">
+              <div className="font-semibold text-sm">
+                Uploaded Documents
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="text-sm mr-4">
-                  {p.is_verified ? (
-                    <span className="text-green-600">
-                      Verified
-                    </span>
+              {Object.entries(DOC_LABELS).map(([key, label]) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span>{label}</span>
+
+                  {signedDocs[key] ? (
+                    <a
+                      href={signedDocs[key]!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button size="sm" variant="outline">
+                        View
+                      </Button>
+                    </a>
                   ) : (
-                    <span className="text-yellow-600">
-                      Pending
+                    <span className="text-muted-foreground">
+                      Not uploaded
                     </span>
                   )}
                 </div>
+              ))}
+            </div>
 
+            {/* ✅ ACTIONS */}
+            <div className="flex gap-3">
+              <form action="/api/admin/pilots/approve" method="POST">
+                <input type="hidden" name="id" value={p.id} />
                 <Button
-                  size="sm"
-                  onClick={() =>
-                    changeVerification(p.id, true)
-                  }
-                  disabled={loading || p.is_verified}
+                  type="submit"
+                  disabled={p.verification_status === 'approved'}
                 >
                   Approve
                 </Button>
+              </form>
 
+              <form action="/api/admin/pilots/reject" method="POST">
+                <input type="hidden" name="id" value={p.id} />
                 <Button
-                  size="sm"
                   variant="destructive"
-                  onClick={() =>
-                    changeVerification(p.id, false)
-                  }
-                  disabled={loading || !p.is_verified}
+                  type="submit"
+                  disabled={p.verification_status === 'rejected'}
                 >
-                  Revoke
+                  Reject
                 </Button>
-              </div>
+              </form>
             </div>
-          ))}
-        </div>
-      </CardContent>
+          </CardContent>
+        </Card>
+      );
+    })
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Verify Pilots</h1>
+      {cards}
     </div>
   );
 }

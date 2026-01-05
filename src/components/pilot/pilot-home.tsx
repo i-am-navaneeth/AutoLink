@@ -71,7 +71,7 @@ export default function PilotHome() {
         .from('pilots')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
       if (!mounted) return;
 

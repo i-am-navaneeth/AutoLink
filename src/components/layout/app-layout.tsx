@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useUser } from '@/context/user-context';
+import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUser } from '@/context/user-context';
 
 import {
   SidebarProvider,
@@ -14,52 +14,49 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Car,
   Home,
   LayoutDashboard,
   Rocket,
-  User as UserIcon,
   ShieldCheck,
+  Settings,
 } from 'lucide-react';
 
-import Link from 'next/link';
 import { Separator } from '../ui/separator';
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+/* ---------------- NAV LINK ---------------- */
 
-// ---------------- NAV LINK ----------------
-
-const NavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
+const NavLink = ({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) => {
   const router = useRouter();
   return (
-    <div onClick={() => router.push(href)} className="cursor-pointer">
+    <div
+      onClick={() => router.push(href)}
+      className="cursor-pointer"
+    >
       {children}
     </div>
   );
 };
 
-// ---------------- PASSENGER NAV ----------------
+/* ---------------- PASSENGER NAV ---------------- */
 
 const PassengerNav = () => {
   const pathname = usePathname();
+
   return (
     <>
       <SidebarMenuItem>
         <NavLink href="/home">
-          <SidebarMenuButton isActive={pathname.startsWith('/home')} tooltip="Home">
+          <SidebarMenuButton isActive={pathname.startsWith('/home')}>
             <Home />
             <span>Home</span>
           </SidebarMenuButton>
@@ -68,10 +65,7 @@ const PassengerNav = () => {
 
       <SidebarMenuItem>
         <NavLink href="/quick-rides">
-          <SidebarMenuButton
-            isActive={pathname.startsWith('/quick-rides')}
-            tooltip="Quick Rides"
-          >
+          <SidebarMenuButton isActive={pathname.startsWith('/quick-rides')}>
             <Rocket />
             <span>Quick Rides</span>
           </SidebarMenuButton>
@@ -79,10 +73,10 @@ const PassengerNav = () => {
       </SidebarMenuItem>
 
       <SidebarMenuItem>
-        <NavLink href="/profile">
-          <SidebarMenuButton isActive={pathname.startsWith('/profile')} tooltip="My Profile">
-            <UserIcon />
-            <span>My Profile</span>
+        <NavLink href="/settings">
+          <SidebarMenuButton isActive={pathname.startsWith('/settings')}>
+            <Settings />
+            <span>Settings</span>
           </SidebarMenuButton>
         </NavLink>
       </SidebarMenuItem>
@@ -90,15 +84,16 @@ const PassengerNav = () => {
   );
 };
 
-// ---------------- PILOT NAV ----------------
+/* ---------------- PILOT NAV ---------------- */
 
 const PilotNav = () => {
   const pathname = usePathname();
+
   return (
     <>
       <SidebarMenuItem>
-        <NavLink href="/home">
-          <SidebarMenuButton isActive={pathname.startsWith('/home')} tooltip="Home">
+        <NavLink href="/pilot/home">
+          <SidebarMenuButton isActive={pathname.startsWith('/pilot/home')}>
             <Home />
             <span>Home</span>
           </SidebarMenuButton>
@@ -106,11 +101,8 @@ const PilotNav = () => {
       </SidebarMenuItem>
 
       <SidebarMenuItem>
-        <NavLink href="/pilot-dashboard">
-          <SidebarMenuButton
-            isActive={pathname.startsWith('/pilot-dashboard')}
-            tooltip="Dashboard"
-          >
+        <NavLink href="/pilot/dashboard">
+          <SidebarMenuButton isActive={pathname.startsWith('/pilot/dashboard')}>
             <LayoutDashboard />
             <span>Dashboard</span>
           </SidebarMenuButton>
@@ -118,10 +110,10 @@ const PilotNav = () => {
       </SidebarMenuItem>
 
       <SidebarMenuItem>
-        <NavLink href="/profile">
-          <SidebarMenuButton isActive={pathname.startsWith('/profile')} tooltip="My Profile">
-            <UserIcon />
-            <span>My Profile</span>
+        <NavLink href="/settings">
+          <SidebarMenuButton isActive={pathname.startsWith('/settings')}>
+            <Settings />
+            <span>Settings</span>
           </SidebarMenuButton>
         </NavLink>
       </SidebarMenuItem>
@@ -129,96 +121,103 @@ const PilotNav = () => {
   );
 };
 
-// ---------------- ADMIN NAV ----------------
+/* ---------------- ADMIN NAV ---------------- */
 
 const AdminNav = () => {
   const pathname = usePathname();
+
   return (
-    <SidebarMenuItem>
-      <NavLink href="/admin/verify-pilots">
-        <SidebarMenuButton
-          isActive={pathname.startsWith('/admin/verify-pilots')}
-          tooltip="Verify Pilots"
-        >
-          <ShieldCheck />
-          <span>Verify Pilots</span>
-        </SidebarMenuButton>
-      </NavLink>
-    </SidebarMenuItem>
+    <>
+      <SidebarMenuItem>
+        <NavLink href="/admin/verify-pilots">
+          <SidebarMenuButton
+            isActive={pathname.startsWith('/admin/verify-pilots')}
+          >
+            <ShieldCheck />
+            <span>Verify Pilots</span>
+          </SidebarMenuButton>
+        </NavLink>
+      </SidebarMenuItem>
+
+      <SidebarMenuItem>
+        <NavLink href="/settings">
+          <SidebarMenuButton isActive={pathname.startsWith('/settings')}>
+            <Settings />
+            <span>Settings</span>
+          </SidebarMenuButton>
+        </NavLink>
+      </SidebarMenuItem>
+    </>
   );
 };
 
-// ---------------- MAIN LAYOUT ----------------
+/* ---------------- MAIN LAYOUT (UI ONLY) ---------------- */
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const { user, userType, loading } = useUser();
+  const router = useRouter();
 
-  // 🔐 Redirect if not logged in
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
-    }
-  }, [loading, user, router]);
-
-  // ⏳ Loading state
-  if (loading || !user) {
+  if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <Car className="h-8 w-8 animate-pulse" />
-          <p className="text-lg">Loading AutoLink...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen text-muted-foreground">
+        Loading…
       </div>
     );
   }
 
-  const isAdmin = userType === 'admin';
-  const isPassenger = userType === 'passenger';
-  const isPilot = userType === 'pilot';
+  if (!user || !userType) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
-      <Sidebar variant="sidebar" collapsible="icon">
+      <Sidebar collapsible="icon">
         <SidebarHeader className="items-center justify-center text-center p-4">
-          <h2 className="font-bold text-2xl group-data-[collapsible=icon]:hidden">AutoLink</h2>
-          <h2 className="font-bold text-xl hidden group-data-[collapsible=icon]:block">AL</h2>
+          <h2 className="font-bold text-2xl group-data-[collapsible=icon]:hidden">
+            AutoLink
+          </h2>
+          <h2 className="font-bold text-xl hidden group-data-[collapsible=icon]:block">
+            AL
+          </h2>
         </SidebarHeader>
 
         <SidebarContent>
           <SidebarMenu>
-            {isPassenger && <PassengerNav />}
-            {isPilot && <PilotNav />}
-            {isAdmin && <AdminNav />}
+            {userType === 'passenger' && <PassengerNav />}
+            {userType === 'pilot' && <PilotNav />}
+            {userType === 'admin' && <AdminNav />}
           </SidebarMenu>
         </SidebarContent>
 
-        <SidebarFooter className="items-center">
+        <SidebarFooter>
           <Separator className="mb-2" />
-
-          <div className="flex items-center gap-3 w-full p-2">
-            <Avatar>
+          <div
+            onClick={() => router.push('/profile')}
+            className="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-colors hover:bg-black/10"
+          >
+            <Avatar className="h-9 w-9">
               <AvatarImage src="" />
               <AvatarFallback>
-                {user.email?.[0]?.toUpperCase() || '?'}
+                {user.email?.[0]?.toUpperCase() ?? '?'}
               </AvatarFallback>
             </Avatar>
 
-            <div className="overflow-hidden group-data-[collapsible=icon]:hidden">
-              <p className="font-semibold truncate">{user.email}</p>
-              <p className="text-xs text-muted-foreground truncate">{userType}</p>
+            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+              <p className="font-semibold text-sm truncate text-white">
+                {user.email}
+              </p>
+              <p className="text-xs text-black/70 truncate">
+                {userType}
+              </p>
             </div>
           </div>
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 md:hidden">
-          <h2 className="font-bold text-2xl">AutoLink</h2>
-          <SidebarTrigger />
-        </header>
-
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="p-4 sm:p-6 bg-white min-h-screen">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -22,18 +22,8 @@ export default function RegisterPage() {
   const [role, setRole] = useState<UserRole>(null);
 
   return (
-    <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        {role === null && (
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/login')}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Login
-          </Button>
-        )}
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="w-full max-w-lg mx-auto">
 
         <Card className="shadow-2xl">
           {role === 'passenger' ? (

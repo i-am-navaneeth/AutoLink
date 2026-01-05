@@ -14,7 +14,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!loading && userType !== 'admin') {
-      router.replace('/login');
+      router.replace('/email-login');
     }
   }, [loading, userType, router]);
 

@@ -1,17 +1,28 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies(); // ✅ MUST await
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
-  const { searchParams } = new URL(request.url);
+  const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
 
-  if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login`);
   }
 
-  return NextResponse.redirect(new URL('/home', request.url));
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get: () => '',
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  );
+
+  await supabase.auth.exchangeCodeForSession(code);
+
+  // 🔒 SAFE DEFAULT REDIRECT
+  return NextResponse.redirect(`${origin}/quick-rides`);
 }
