@@ -12,8 +12,11 @@ export const metadata = {
   icons: {
     icon: '/icon.png',
   },
+  verification: {
+    google: "XbXfhVhK1Wrltr01YbCK41cfil-NAg0t83VztXgpVhU",
+  },
 };
-
+ 
 
 export default function RootLayout({
   children,

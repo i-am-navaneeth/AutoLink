@@ -4,8 +4,6 @@ import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/context/user-context';
 
-import type { ReactNode } from "react";
-
 import {
   SidebarProvider,
   Sidebar,
@@ -31,6 +29,8 @@ import {
 
 import { Separator } from '../ui/separator';
 
+import type { ReactNode } from 'react';
+
 /* ---------------- NAV LINK ---------------- */
 
 const NavLink = ({
@@ -38,7 +38,7 @@ const NavLink = ({
   children,
 }: {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) => {
   const router = useRouter();
   return (
@@ -156,7 +156,7 @@ const AdminNav = () => {
 
 /* ---------------- INNER LAYOUT ---------------- */
 
-function LayoutInner({ children }: { children: React.ReactNode }) {
+function LayoutInner({ children, }: { children: ReactNode; }) {
   const { user, userType, pilotVerificationStatus, loading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -238,30 +238,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ---------------- SEO ---------------*/
-
-export const metadata = {
-  verification: {
-    google: "XbXfhVhK1Wrltr01YbCK41cfil-NAg0t83VztXgpVhU",
-  },
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}
-
-
 /* ---------------- PROVIDER WRAPPER ---------------- */
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children, }: { children: ReactNode; }) {
   return (
     <SidebarProvider>
       <LayoutInner>{children}</LayoutInner>
