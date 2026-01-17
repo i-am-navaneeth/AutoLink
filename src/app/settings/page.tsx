@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { AppLayout } from '@/components/layout/app-layout';
 
 import {
@@ -16,6 +17,7 @@ import { User, Info } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   return (
     <AppLayout>
@@ -43,22 +45,35 @@ export default function SettingsPage() {
               </span>
             </div>
 
-            {/* THEME (LOCKED TO LIGHT) */}
+            {/* THEME */}
             <div className="space-y-2">
               <p className="font-medium">App Theme</p>
 
               <div className="flex gap-2">
-                <Button disabled>Light</Button>
-                <Button variant="outline" disabled>
+                <Button
+                  variant={theme === 'light' ? 'default' : 'outline'}
+                  onClick={() => setTheme('light')}
+                >
+                  Light
+                </Button>
+
+                <Button
+                  variant={theme === 'dark' ? 'default' : 'outline'}
+                  onClick={() => setTheme('dark')}
+                >
                   Dark
                 </Button>
-                <Button variant="outline" disabled>
+
+                <Button
+                  variant={theme === 'system' ? 'default' : 'outline'}
+                  onClick={() => setTheme('system')}
+                >
                   System
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Theme switching is currently disabled.
+                Theme is saved automatically and applies across the app.
               </p>
             </div>
 

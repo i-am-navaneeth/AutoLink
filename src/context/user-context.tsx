@@ -70,9 +70,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const mountedRef = useRef(true);
 
-  /* ---------- Load role + pilot verification ---------- */
+  /* ---------- Load base role + pilot capability ---------- */
   const loadUserMeta = async (authUser: User) => {
-    const { data } = await supabase
+    /* Base identity (always passenger unless admin) */
+    const { data: userRow } = await supabase
       .from('users')
       .select('role')
       .eq('id', authUser.id)
@@ -80,24 +81,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     if (!mountedRef.current) return;
 
-    const role: UserType = data?.role ?? 'passenger';
+    const role: UserType = userRow?.role ?? 'passenger';
     setUserType(role);
 
-    if (role === 'pilot') {
-      const { data: pilot } = await supabase
-        .from('pilots')
-        .select('verification_status')
-        .eq('id', authUser.id)
-        .single();
+    /* Pilot capability is independent of role */
+    const { data: pilotRow } = await supabase
+      .from('pilots')
+      .select('verification_status')
+      .eq('id', authUser.id)
+      .maybeSingle();
 
-      if (!mountedRef.current) return;
+    if (!mountedRef.current) return;
 
-      setPilotVerificationStatus(
-        pilot?.verification_status ?? 'pending'
-      );
-    } else {
-      setPilotVerificationStatus(null);
-    }
+    setPilotVerificationStatus(
+      pilotRow?.verification_status ?? null
+    );
   };
 
   /* ---------- Bootstrap + auth listener ---------- */
@@ -115,14 +113,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(sessionUser);
 
       if (sessionUser) {
-        await loadUserMeta(sessionUser); // ⛔ wait fully
+        await loadUserMeta(sessionUser);
       } else {
         setUserType(null);
         setPilotVerificationStatus(null);
       }
 
       if (!mountedRef.current) return;
-      setLoading(false); // ✅ only here
+      setLoading(false);
     };
 
     init();
@@ -140,7 +138,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setUserType(null);
           setPilotVerificationStatus(null);
         }
-        // ❌ never touch loading here
       }
     );
 

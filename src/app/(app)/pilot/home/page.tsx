@@ -171,7 +171,7 @@ export default function PilotHomePage() {
           <input
             value={origin}
             onChange={e => setOrigin(e.target.value)}
-            placeholder="Origin"
+            placeholder="Your starting point"
             className="w-full border rounded-md px-3 py-2"
             disabled={isShared}
           />
@@ -179,7 +179,7 @@ export default function PilotHomePage() {
           <input
             value={destination}
             onChange={e => setDestination(e.target.value)}
-            placeholder="Destination"
+            placeholder="Your final destination"
             className="w-full border rounded-md px-3 py-2"
             disabled={isShared}
           />
@@ -191,7 +191,7 @@ export default function PilotHomePage() {
             onChange={e =>
               setFare(Math.max(1, Number(e.target.value)) || '')
             }
-            placeholder="Base fare per seat (₹)"
+            placeholder="e.g., 100"
             className="w-full border rounded-md px-3 py-2"
             disabled={isShared}
           />
@@ -215,7 +215,7 @@ export default function PilotHomePage() {
               <div>
                 <p className="font-medium">Auto Accept Rides</p>
                 <p className="text-sm text-muted-foreground">
-                  Automatically accept matching requests
+                  Automatically accept matching ride requests
                 </p>
               </div>
             </div>

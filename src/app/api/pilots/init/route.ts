@@ -23,14 +23,14 @@ export async function POST(req: Request) {
 
   console.log('PROCESSING USER ID:', userId);
 
-  // 1️⃣ Ensure users row exists, create if missing, otherwise update role
+  /* ---------- 1️⃣ USERS TABLE (SAFE UPSERT) ---------- */
   const { data: existingUser, error: selectError } = await supabase
     .from('users')
     .select('id')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
-  if (selectError && selectError.code !== 'PGRST116') {
+  if (selectError) {
     return NextResponse.json(
       { error: selectError.message },
       { status: 400 }
@@ -72,13 +72,15 @@ export async function POST(req: Request) {
     }
   }
 
-  // 2️⃣ Ensure pilots row exists
+  /* ---------- 2️⃣ PILOTS TABLE (PENDING BY DESIGN) ---------- */
   const { error: pilotError } = await supabase
     .from('pilots')
     .upsert(
       {
         id: userId,
         verification_status: 'pending',
+        verified: false,
+        live_mode: 'offline',
       },
       { onConflict: 'id' }
     );

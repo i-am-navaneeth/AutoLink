@@ -50,13 +50,16 @@ export default function PilotRegisterForm({
     setLoading(true);
 
     try {
-      /* ---------- 1️⃣ Create auth user ---------- */
+      /* ---------- 1️⃣ AUTH SIGNUP ---------- */
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName || 'Pilot',
+            referral_code: referralCode.trim()
+              ? referralCode.trim().toUpperCase()
+              : null,
           },
         },
       });
@@ -66,46 +69,54 @@ export default function PilotRegisterForm({
 
       const userId = data.user.id;
 
-      /* ---------- 2️⃣ INIT PILOT (SERVER-SIDE) ---------- */
+      /* ---------- 2️⃣ INIT PILOT PROFILE (SERVER) ---------- */
       const res = await fetch('/api/pilots/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
           email,
-          fullName,
+          fullName: fullName || 'Pilot',
           avatarUrl: DEFAULT_AVATAR_URL,
         }),
       });
+
+      window.location.href = '/pilot/dashboard';
+
 
       if (!res.ok) {
         throw new Error('Pilot initialization failed');
       }
 
-      /* ---------- 3️⃣ APPLY REFERRAL (OPTIONAL, SILENT) ---------- */
-      if (referralCode.trim()) {
-        await fetch('/api/referrals/apply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            referralCode: referralCode.trim(),
-          }),
-        });
-      }
-
       await supabase.auth.refreshSession();
 
-      /* ---------- 4️⃣ Redirect ---------- */
-      router.replace('/pilot/profile');
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Unknown error';
 
-      console.error(message);
+      toast({
+        title: 'Account created',
+        description: data.session
+          ? 'Welcome to AutoLink!'
+          : 'Check your email to continue.',
+      });
+
+      /**
+       * ✅ HANDLE BOTH MODES
+       * - Email confirm OFF → session exists → dashboard
+       * - Email confirm ON  → no session → email-login
+       */
+      if (data.session) {
+        router.replace('/pilot/dashboard');
+      } else {
+        router.replace('/email-login');
+      }
+    } catch (err: any) {
+      console.error('Signup error:', err);
 
       toast({
         title: 'Registration failed',
-        description: message,
+        description:
+          err?.message ||
+          err?.error?.message ||
+          'Signup failed. Try again.',
         variant: 'destructive',
       });
     } finally {
@@ -171,7 +182,6 @@ export default function PilotRegisterForm({
           />
         </div>
 
-        {/* 🔗 REFERRAL CODE (OPTIONAL) */}
         <div className="space-y-2">
           <Label>Referral Code (Optional)</Label>
           <Input

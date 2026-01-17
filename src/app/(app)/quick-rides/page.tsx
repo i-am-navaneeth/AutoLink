@@ -48,6 +48,23 @@ export default function QuickRidesPage() {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!user) return <div className="p-6">Redirecting...</div>;
 
+  /* ================= APPLY REFERRAL (DB-FIRST, ONCE) ================= */
+  useEffect(() => {
+    if (!user) return;
+
+    const applyReferral = async () => {
+      try {
+        await supabase.rpc('apply_referral_after_confirm', {
+          p_user_id: user.id,
+        });
+      } catch {
+        // silent by design
+      }
+    };
+
+    applyReferral();
+  }, [user]);
+
   /* ---------- Google Maps Loader ---------- */
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -167,9 +184,10 @@ export default function QuickRidesPage() {
         passengerId: user.id,
         pickup,
         dropoff,
-        rideDate: null, // instant ride (Rapido-style)
+        rideDate: null,
         fare: price ?? 0,
         distanceKm: distance ?? 0,
+        
       }),
     });
 
@@ -204,7 +222,6 @@ export default function QuickRidesPage() {
 
         <CardContent className="grid md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            {/* Pickup */}
             <div>
               <Label>Pickup</Label>
 
@@ -240,7 +257,6 @@ export default function QuickRidesPage() {
               </Button>
             </div>
 
-            {/* Dropoff */}
             <div>
               <Label>Drop-off</Label>
 
@@ -302,7 +318,6 @@ export default function QuickRidesPage() {
         </CardContent>
       </Card>
 
-      {/* Brand Footer */}
       <div className="mt-20 mb-6 flex items-center justify-center text-center select-none">
         <p className="text-[12px] sm:text-[13px] font-medium text-[#8A8D94]">
           <span className="font-semibold text-[#6B6F76]">AutoLink</span>

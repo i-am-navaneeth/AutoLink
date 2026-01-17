@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/user-context';
 
 import Image from 'next/image';
-import { Mail } from 'lucide-react';
+import { Mail, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -20,18 +20,20 @@ import {
 
 export default function PublicHomePage() {
   const router = useRouter();
-  const { user, userType, loading } = useUser();
+  const { user, loading } = useUser();
+
+  // ✅ LOCAL BUTTON LOADING STATE
+  const [loginLoading, setLoginLoading] = useState(false);
 
   /* ---------------- REDIRECT AUTHENTICATED USERS ---------------- */
 
+  useEffect(() => {
+    if (loading) return;
 
-    useEffect(() => {
-  if (loading) return;
-
-  if (user) {
-    router.replace('/quick-rides');
-  }
-}, [loading, user, router]);
+    if (user) {
+      router.replace('/quick-rides');
+    }
+  }, [loading, user, router]);
 
   /* ---------------- BLOCK UI WHILE REDIRECTING ---------------- */
 
@@ -44,6 +46,11 @@ export default function PublicHomePage() {
   const heroImage = PlaceHolderImages.find(
     (img) => img.id === 'login-hero'
   );
+
+  const handleLoginClick = () => {
+    setLoginLoading(true);
+    router.push('/login');
+  };
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4">
@@ -78,13 +85,24 @@ export default function PublicHomePage() {
           </CardHeader>
 
           <CardContent className="flex flex-col gap-4">
+            {/* ✅ LOGIN BUTTON WITH LOADING */}
             <Button
               size="lg"
               className="h-auto py-4"
-              onClick={() => router.push('/login')}
+              onClick={handleLoginClick}
+              disabled={loginLoading}
             >
-              <Mail className="mr-2" />
-              Login with Email
+              {loginLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Redirecting…
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2" />
+                  Login with Email
+                </>
+              )}
             </Button>
 
             <div className="relative my-2">

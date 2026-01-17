@@ -1,10 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const handleLogin = () => {
+    setLoginLoading(true);
+    router.push('/email-login');
+  };
 
   return (
     <main
@@ -13,7 +21,7 @@ export default function LandingPage() {
         backgroundImage: "url('/bg/autolink-auth-bg.png')",
       }}
     >
-      {/* Overlay for readability (optional but recommended) */}
+      {/* Overlay */}
       <div className="absolute inset-0 bg-white/20" />
 
       {/* Content */}
@@ -27,11 +35,20 @@ export default function LandingPage() {
         </p>
 
         <div className="space-y-3">
+          {/* ✅ LOGIN WITH LOADING */}
           <Button
             className="w-full bg-[#FFC107] hover:bg-[#FFB300] text-black"
-            onClick={() => router.push('/email-login')}
+            onClick={handleLogin}
+            disabled={loginLoading}
           >
-            Login with Email
+            {loginLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                loading…
+              </>
+            ) : (
+              'Login with Email'
+            )}
           </Button>
 
           <Button

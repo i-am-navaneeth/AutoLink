@@ -15,9 +15,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
-const DEFAULT_AVATAR_URL =
-  'https://placehold.co/200x200?text=User';
-
 type PassengerRegisterFormProps = {
   onBack?: () => void;
 };
@@ -50,60 +47,55 @@ export default function PassengerRegisterForm({
     setLoading(true);
 
     try {
-      // 1️⃣ Create auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName || 'Passenger',
+            referral_code: referralCode.trim()
+              ? referralCode.trim().toUpperCase()
+              : null,
           },
         },
       });
 
       if (error) throw error;
-      if (!data.user) throw new Error('Signup failed');
 
-      // 2️⃣ Create users table row
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: data.user.id,
-          full_name: fullName || 'Passenger',
-          email: data.user.email,
-          role: 'passenger',
-          avatar_url: DEFAULT_AVATAR_URL,
-        });
-
-      if (profileError) throw profileError;
-
-      // 3️⃣ Apply referral (SILENT, OPTIONAL)
+      // Store referral locally (optional future use)
       if (referralCode.trim()) {
-        await fetch('/api/referrals/apply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            referralCode: referralCode.trim(),
-          }),
-        });
+        localStorage.setItem(
+          'pending_referral_code',
+          referralCode.trim().toUpperCase()
+        );
       }
 
       toast({
         title: 'Account created',
-        description: 'Welcome to AutoLink!',
+        description: data.session
+          ? 'Your account is ready.'
+          : 'Check your email and click the link to continue.',
       });
 
-      await supabase.auth.refreshSession();
-      router.push('/quick-rides');
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Unknown error';
-
-      console.error(message);
+      /**
+       * ✅ HANDLE BOTH MODES
+       * - Email confirm OFF  → session exists → auto login
+       * - Email confirm ON   → no session → email-login
+       */
+      if (data.session) {
+        router.replace('/quick-rides');
+      } else {
+        router.replace('/email-login');
+      }
+    } catch (err: any) {
+      console.error('Signup error:', err);
 
       toast({
         title: 'Registration failed',
-        description: message,
+        description:
+          err?.message ||
+          err?.error?.message ||
+          'Signup failed. Try again.',
         variant: 'destructive',
       });
     } finally {
@@ -167,11 +159,9 @@ export default function PassengerRegisterForm({
           />
         </div>
 
-        {/* 🔗 REFERRAL CODE (OPTIONAL) */}
         <div className="space-y-2">
           <Label>Referral Code (Optional)</Label>
           <Input
-            placeholder="Enter pilot referral code"
             value={referralCode}
             onChange={(e) =>
               setReferralCode(e.target.value.toUpperCase())

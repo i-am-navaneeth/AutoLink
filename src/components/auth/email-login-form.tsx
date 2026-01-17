@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, KeyRound, Loader2 } from 'lucide-react';
+import { Mail, KeyRound, Loader2, Eye, EyeOff } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,47 +23,76 @@ export function EmailLoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // 🔐 prevents old async errors after success
+  const didSucceedRef = useRef(false);
+
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
 
+    if (loading) return;
+
+    /* ---------- CLIENT VALIDATION ---------- */
+
     if (!email || !password) {
       toast({
-        title: 'Invalid Input',
+        title: 'Missing details',
         description: 'Please enter both email and password.',
         variant: 'destructive',
       });
       return;
     }
 
+    if (!isValidEmail(email)) {
+      toast({
+        title: 'Invalid email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
+    didSucceedRef.current = false;
 
     try {
-      /* ---------- 1. SIGN IN ---------- */
+      /* ---------- 1. AUTH ---------- */
       const { data, error } =
         await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('Login failed');
+      if (error) {
+        throw new Error('Incorrect email or password.');
+      }
 
-      const userId = data.user.id;
+      if (!data.user) {
+        throw new Error('Unable to sign in. Please try again.');
+      }
 
-      /* ---------- 2. FETCH ROLE (SOURCE OF TRUTH) ---------- */
+      /* ---------- 2. MARK SUCCESS EARLY ---------- */
+      didSucceedRef.current = true;
+
+      /* ---------- 3. FETCH ROLE ---------- */
       const { data: profile, error: profileError } =
         await supabase
           .from('users')
           .select('role')
-          .eq('id', userId)
+          .eq('id', data.user.id)
           .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        throw new Error('Unable to load user profile.');
+      }
 
-      /* ---------- 3. HARD, SINGLE REDIRECT ---------- */
+      /* ---------- 4. HARD REDIRECT ---------- */
       if (profile?.role === 'admin') {
         router.replace('/admin/verify-pilots');
         return;
@@ -74,14 +103,19 @@ export function EmailLoginForm() {
         return;
       }
 
-      // passenger (default)
       router.replace('/quick-rides');
     } catch (err: any) {
+      // 🔥 BLOCK TOAST IF LOGIN ALREADY SUCCEEDED
+      if (didSucceedRef.current) return;
+
       toast({
-        title: 'Login Failed',
-        description: err?.message || 'Invalid credentials',
+        title: 'Login failed',
+        description:
+          err?.message ||
+          'Something went wrong. Please try again.',
         variant: 'destructive',
       });
+
       setLoading(false);
     }
   };
@@ -97,10 +131,8 @@ export function EmailLoginForm() {
         </CardDescription>
       </CardHeader>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4"
-      >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* EMAIL */}
         <div className="space-y-2">
           <Label>Email</Label>
           <div className="relative">
@@ -109,32 +141,42 @@ export function EmailLoginForm() {
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
+              onChange={(e) => setEmail(e.target.value)}
               className="pl-10"
               disabled={loading}
             />
           </div>
         </div>
 
+        {/* PASSWORD */}
         <div className="space-y-2">
           <Label>Password</Label>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Your password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              className="pl-10"
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 pr-10"
               disabled={loading}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
 
+        {/* SUBMIT */}
         <Button
           type="submit"
           className="w-full"

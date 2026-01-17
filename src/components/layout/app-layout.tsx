@@ -4,6 +4,8 @@ import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/context/user-context';
 
+import type { ReactNode } from "react";
+
 import {
   SidebarProvider,
   Sidebar,
@@ -14,6 +16,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,6 +26,7 @@ import {
   Rocket,
   ShieldCheck,
   Settings,
+  Menu,
 } from 'lucide-react';
 
 import { Separator } from '../ui/separator';
@@ -38,10 +42,7 @@ const NavLink = ({
 }) => {
   const router = useRouter();
   return (
-    <div
-      onClick={() => router.push(href)}
-      className="cursor-pointer"
-    >
+    <div onClick={() => router.push(href)} className="cursor-pointer">
       {children}
     </div>
   );
@@ -102,7 +103,9 @@ const PilotNav = () => {
 
       <SidebarMenuItem>
         <NavLink href="/pilot/dashboard">
-          <SidebarMenuButton isActive={pathname.startsWith('/pilot/dashboard')}>
+          <SidebarMenuButton
+            isActive={pathname.startsWith('/pilot/dashboard')}
+          >
             <LayoutDashboard />
             <span>Dashboard</span>
           </SidebarMenuButton>
@@ -151,11 +154,13 @@ const AdminNav = () => {
   );
 };
 
-/* ---------------- MAIN LAYOUT (UI ONLY) ---------------- */
+/* ---------------- INNER LAYOUT ---------------- */
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, userType, loading } = useUser();
+function LayoutInner({ children }: { children: React.ReactNode }) {
+  const { user, userType, pilotVerificationStatus, loading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
+  const { toggleSidebar } = useSidebar();
 
   if (loading) {
     return (
@@ -165,12 +170,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user || !userType) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
-    <SidebarProvider>
+    <>
+      {/* 🔹 MOBILE TOP BAR */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 bg-white border-b px-4 py-3 sm:hidden">
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded-md hover:bg-muted"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <span className="font-semibold">AutoLink</span>
+      </div>
+
       <Sidebar collapsible="icon">
         <SidebarHeader className="items-center justify-center text-center p-4">
           <h2 className="font-bold text-2xl group-data-[collapsible=icon]:hidden">
@@ -183,10 +197,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         <SidebarContent>
           <SidebarMenu>
-            {userType === 'passenger' && <PassengerNav />}
-            {userType === 'pilot' && <PilotNav />}
-            {userType === 'admin' && <AdminNav />}
-          </SidebarMenu>
+  {userType === 'passenger' && <PassengerNav />}
+  {userType === 'pilot' && <PilotNav />}
+  {userType === 'admin' && <AdminNav />}
+</SidebarMenu>
+
         </SidebarContent>
 
         <SidebarFooter>
@@ -196,7 +211,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-colors hover:bg-black/10"
           >
             <Avatar className="h-9 w-9">
-              <AvatarImage src="" />
+              <AvatarImage />
               <AvatarFallback>
                 {user.email?.[0]?.toUpperCase() ?? '?'}
               </AvatarFallback>
@@ -215,10 +230,41 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <SidebarInset>
-        <main className="p-4 sm:p-6 bg-white min-h-screen">
+        <main className="pt-16 p-4 sm:p-6 bg-white min-h-screen">
           {children}
         </main>
       </SidebarInset>
+    </>
+  );
+}
+
+/* ---------------- SEO ---------------*/
+
+export const metadata = {
+  verification: {
+    google: "XbXfhVhK1Wrltr01YbCK41cfil-NAg0t83VztXgpVhU",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+
+
+/* ---------------- PROVIDER WRAPPER ---------------- */
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <LayoutInner>{children}</LayoutInner>
     </SidebarProvider>
   );
 }

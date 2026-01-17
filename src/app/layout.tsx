@@ -9,7 +9,11 @@ import { ThemeProvider } from '@/components/theme-provider';
 export const metadata = {
   title: 'AutoLink',
   description: 'Where tech meets tuktuk',
+  icons: {
+    icon: '/icon.png',
+  },
 };
+
 
 export default function RootLayout({
   children,

@@ -33,23 +33,31 @@ if (rideDate && new Date(rideDate) > new Date()) {
 
     
     const { data, error } = await supabaseAdmin
-      .from('rides')
-      .insert({
-        passenger_id: passengerId,
-        pickup_address: pickup.address,
-        pickup_lat: pickup.lat,
-        pickup_lng: pickup.lng,
-        dropoff_address: dropoff.address,
-        dropoff_lat: dropoff.lat,
-        dropoff_lng: dropoff.lng,
-        ride_date: rideDate ?? new Date().toISOString(),
-        is_instant: isInstant,
-        status: 'requested',
-        fare_estimate: fare,
-        distance_km: distanceKm,
-      })
-      .select()
-      .single();
+  .from('rides')
+  .insert({
+    passenger_id: passengerId,
+
+    pickup_location: pickup.address,
+    pickup_lat: pickup.lat,
+    pickup_lng: pickup.lng,
+
+    dropoff_location: dropoff.address,
+    dropoff_lat: dropoff.lat,
+    dropoff_lng: dropoff.lng,
+
+    scheduled_time: rideDate ?? null,
+    is_instant: isInstant,
+
+    ride_type: 'instant',
+    status: 'requested',
+
+    fare_estimate: fare,
+    distance_km: distanceKm,
+  })
+  .select()
+  .single();
+
+
 
 
     if (error) {
