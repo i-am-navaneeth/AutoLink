@@ -65,6 +65,7 @@ export interface Ride {
   status:
     | 'requested'
     | 'matched'
+    | 'assigned'
     | 'accepted'
     | 'started'
     | 'completed'

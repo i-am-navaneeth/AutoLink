@@ -1,7 +1,38 @@
-// src/lib/fare.ts
-export function calculateFare(distanceKm: number) {
-  const BASE_FARE = 20;     // ₹
-  const PER_KM = 12;        // ₹ per km
+type FareInput = {
+  distanceKm: number;
+  rideType: 'quick' | 'share';
+  isNight?: boolean;
+};
 
-  return Math.round(BASE_FARE + distanceKm * PER_KM);
+export function calculateFare({
+  distanceKm,
+  rideType,
+  isNight = false,
+}: FareInput): number {
+  let fare = 0;
+
+  /* ---------- QUICK RIDE ---------- */
+  if (rideType === 'quick') {
+    if (distanceKm <= 1) {
+      fare = 30;
+    } else {
+      fare = 30 + (distanceKm - 1) * 16;
+    }
+  }
+
+  /* ---------- SHARE RIDE ---------- */
+  if (rideType === 'share') {
+    if (distanceKm <= 2) {
+      fare = 20;
+    } else {
+      fare = 20 + (distanceKm - 2) * 4;
+    }
+  }
+
+  /* ---------- NIGHT FARE ---------- */
+  if (isNight) {
+    fare = fare * 1.5;
+  }
+
+  return Math.round(fare);
 }

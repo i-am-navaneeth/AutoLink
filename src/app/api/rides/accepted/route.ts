@@ -1,9 +1,13 @@
+// app/api/rides/accepted/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
+// 🔐 User-auth client (NOT service role)
+const supabaseAuth = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // 🔐 SERVER ONLY
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export async function POST(req: NextRequest) {
@@ -18,69 +22,64 @@ export async function POST(req: NextRequest) {
     }
 
     /* ================= AUTH ================= */
-    const auth = req.headers.get('authorization');
-    if (!auth) {
+
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const token = authHeader.replace('Bearer ', '');
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    /* ================= FETCH RIDE ================= */
-    const { data: ride, error: rideError } = await supabase
-      .from('rides')
-      .select('id, status, pilot_id')
-      .eq('id', ride_id)
-      .single();
+    const pilotId = user.id;
 
-    if (rideError || !ride) {
+    /* ================= ATOMIC ACCEPT =================
+       This prevents double-accepts
+    */
+
+    const { data: updatedRide, error: updateError } =
+      await supabaseAdmin
+        .from('rides')
+        .update({
+          status: 'accepted',
+          pilot_id: pilotId,
+          assigned_at: new Date().toISOString(),
+        })
+        .eq('id', ride_id)
+        .eq('status', 'requested') // 🔐 atomic guard
+        .select()
+        .single();
+
+    if (updateError || !updatedRide) {
       return NextResponse.json(
-        { error: 'Ride not found' },
-        { status: 404 }
-      );
-    }
-
-    if (ride.status !== 'requested') {
-      return NextResponse.json(
-        { error: 'Ride already accepted or unavailable' },
-        { status: 400 }
-      );
-    }
-
-    /* ================= ASSIGN RIDE ================= */
-    const { error: assignError } = await supabase
-      .from('rides')
-      .update({
-        status: 'assigned',
-        pilot_id: user.id,
-        assigned_at: new Date().toISOString(),
-      })
-      .eq('id', ride_id);
-
-    if (assignError) {
-      return NextResponse.json(
-        { error: assignError.message },
-        { status: 500 }
+        { error: 'Ride already taken' },
+        { status: 409 }
       );
     }
 
     /* ================= RIDE EVENT ================= */
-    await supabase.from('ride_events').insert({
+
+    await supabaseAdmin.from('ride_events').insert({
       ride_id,
+      pilot_id: pilotId,
       event_type: 'accepted',
-      metadata: {
-        pilot_id: user.id,
-      },
+      created_at: new Date().toISOString(),
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      ride_id,
+    });
   } catch (err: any) {
+    console.error('ACCEPT ERROR:', err);
     return NextResponse.json(
       { error: err.message ?? 'Internal server error' },
       { status: 500 }

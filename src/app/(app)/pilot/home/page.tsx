@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Bell } from 'lucide-react';
+import { useUser } from '@/context/user-context';
 
 type LiveMode = 'offline' | 'quick' | 'shared';
 
@@ -19,6 +20,38 @@ export default function PilotHomePage() {
   const [fare, setFare] = useState<number | ''>('');
   const [seats, setSeats] = useState<number>(1);
   const [autoAccept, setAutoAccept] = useState(false);
+  const { user, loading } = useUser();
+
+  useEffect(() => {
+  if (!user || user.role !== 'pilot') return;
+  if (liveMode === 'offline') return;
+
+  let watchId: number;
+
+  const startTracking = async () => {
+    watchId = navigator.geolocation.watchPosition(
+      async pos => {
+        await fetch('/api/pilots/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pilotId: user.id,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          }),
+        });
+      },
+      err => console.error('GPS error', err),
+      { enableHighAccuracy: true }
+    );
+  };
+
+  startTracking();
+
+  return () => {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+  };
+}, [user, liveMode]);
 
   /* ================= BLINK EFFECT ================= */
   useEffect(() => {

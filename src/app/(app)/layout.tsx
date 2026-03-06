@@ -4,6 +4,7 @@ import React from 'react';
 import { useUser } from '@/context/user-context';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/toaster';
+import PilotLocationTracker from '@/components/pilot/pilot-location-tracker';
 
 export default function AppGroupLayout({
   children,

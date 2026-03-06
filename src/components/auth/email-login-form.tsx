@@ -25,7 +25,7 @@ export function EmailLoginForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // 🔐 prevents old async errors after success
+  // 🔐 Prevent stale error toast after success
   const didSucceedRef = useRef(false);
 
   const isValidEmail = (value: string) =>
@@ -37,8 +37,6 @@ export function EmailLoginForm() {
     e.preventDefault();
 
     if (loading) return;
-
-    /* ---------- CLIENT VALIDATION ---------- */
 
     if (!email || !password) {
       toast({
@@ -62,25 +60,21 @@ export function EmailLoginForm() {
     didSucceedRef.current = false;
 
     try {
-      /* ---------- 1. AUTH ---------- */
+      /* ---------- 1️⃣ AUTH ---------- */
       const { data, error } =
         await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-      if (error) {
+      if (error || !data?.user) {
         throw new Error('Incorrect email or password.');
       }
 
-      if (!data.user) {
-        throw new Error('Unable to sign in. Please try again.');
-      }
-
-      /* ---------- 2. MARK SUCCESS EARLY ---------- */
+      /* ---------- 2️⃣ MARK SUCCESS EARLY ---------- */
       didSucceedRef.current = true;
 
-      /* ---------- 3. FETCH ROLE ---------- */
+      /* ---------- 3️⃣ FETCH ROLE ---------- */
       const { data: profile, error: profileError } =
         await supabase
           .from('users')
@@ -92,7 +86,7 @@ export function EmailLoginForm() {
         throw new Error('Unable to load user profile.');
       }
 
-      /* ---------- 4. HARD REDIRECT ---------- */
+      /* ---------- 4️⃣ ROLE-BASED REDIRECT ---------- */
       if (profile?.role === 'admin') {
         router.replace('/admin/verify-pilots');
         return;
@@ -104,19 +98,23 @@ export function EmailLoginForm() {
       }
 
       router.replace('/quick-rides');
+
     } catch (err: any) {
-      // 🔥 BLOCK TOAST IF LOGIN ALREADY SUCCEEDED
-      if (didSucceedRef.current) return;
-
-      toast({
-        title: 'Login failed',
-        description:
-          err?.message ||
-          'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-
-      setLoading(false);
+      // 🚫 Block toast if already succeeded
+      if (!didSucceedRef.current) {
+        toast({
+          title: 'Login failed',
+          description:
+            err?.message ||
+            'Something went wrong. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      // ✅ Always reset loading if not redirected
+      if (!didSucceedRef.current) {
+        setLoading(false);
+      }
     }
   };
 

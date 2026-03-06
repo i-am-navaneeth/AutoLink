@@ -1,65 +1,57 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 
 export default function LandingPage() {
-  const router = useRouter();
-  const [loginLoading, setLoginLoading] = useState(false);
+const handleWaitlist = () => {
+window.open('https://tally.so/r/VLZkoN', '_blank');
+};
 
-  const handleLogin = () => {
-    setLoginLoading(true);
-    router.push('/email-login');
-  };
+return (
+<main
+className="relative min-h-screen flex items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
+style={{
+backgroundColor: "whitesmoke",
+}}
+>
+{/* Overlay */} <div className="absolute inset-0 bg-white/20" />
 
-  return (
-    <main
-      className="min-h-screen flex items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: "url('/bg/autolink-auth-bg.png')",
-      }}
-    >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-white/20" />
+```
+  {/* Content */}
+  <div className="relative max-w-md w-full text-center space-y-6">
 
-      {/* Content */}
-      <div className="relative max-w-md w-full text-center space-y-6">
-        <h1 className="text-3xl font-extrabold tracking-wide text-gray-900">
-          AutoLink
-        </h1>
+    <h1 className="text-4xl font-extrabold tracking-wide text-gray-900">
+      🚖 AutoLink
+    </h1>
 
-        <p className="text-gray-700">
-          Where tech meets tuktuk
-        </p>
+    <p className="text-gray-800 text-lg font-medium">
+      Fair rides for passengers
+      <br />
+      Fair earnings for drivers
+    </p>
 
-        <div className="space-y-3">
-          {/* ✅ LOGIN WITH LOADING */}
-          <Button
-            className="w-full bg-[#FFC107] hover:bg-[#FFB300] text-black"
-            onClick={handleLogin}
-            disabled={loginLoading}
-          >
-            {loginLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                loading…
-              </>
-            ) : (
-              'Login with Email'
-            )}
-          </Button>
+    <p className="text-gray-700">
+      India’s transparent ride platform.
+    </p>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => router.push('/register')}
-          >
-            Register
-          </Button>
-        </div>
-      </div>
-    </main>
-  );
+    <p className="text-gray-600 text-sm">
+      Launching soon.
+    </p>
+
+    <p className="text-gray-600 text-sm font-medium">
+      If 7000 people join the waitlist, we launch early 🚀
+    </p>
+
+    <div className="pt-4">
+      <Button
+        className="w-full bg-[#FFC107] hover:bg-[#FFB300] text-black text-base font-semibold"
+        onClick={handleWaitlist}
+      >
+        Join Early Access
+      </Button>
+    </div>
+
+  </div>
+</main>
+);
 }

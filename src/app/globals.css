@@ -105,3 +105,29 @@
     animation: shimmer 3s linear infinite;
   }
 }
+
+/* Google Autocomplete dropdown container */
+.pac-container {
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
+  font-family: inherit !important;
+  z-index: 9999 !important;
+}
+
+/* Each suggestion row */
+.pac-item {
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+}
+
+/* Hover effect */
+.pac-item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Main bold text */
+.pac-item-query {
+  font-weight: 600 !important;
+}

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/user-context';
 
-import { AppLayout } from '@/components/layout/app-layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,41 +48,21 @@ export default function ProfilePage() {
 
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
+  const [license, setLicense] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  /* ================= APPLY REFERRAL (ONCE, SILENT) ================= */
-  useEffect(() => {
-    if (!authUser) return;
-
-    const applyReferralOnce = async () => {
-      const code = localStorage.getItem('pending_referral_code');
-      if (!code) return;
-
-      try {
-        await fetch('/api/referrals/apply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ referralCode: code }),
-        });
-      } catch {
-        // silent fail — never block UX
-      } finally {
-        localStorage.removeItem('pending_referral_code');
-      }
-    };
-
-    applyReferralOnce();
-  }, [authUser]);
-
-  /* ---------------- LOAD PROFILE ---------------- */
+  /* ================= LOAD PROFILE ================= */
   useEffect(() => {
     if (!authUser) return;
 
     const loadProfile = async () => {
       const { data } = await supabase
         .from('users')
-        .select('full_name, phone, avatar_url')
+        .select(
+          'full_name, phone, avatar_url, license_number, vehicle_number'
+        )
         .eq('id', authUser.id)
         .maybeSingle();
 
@@ -92,12 +71,14 @@ export default function ProfilePage() {
       setFullName(data.full_name ?? '');
       setMobile(data.phone ?? '');
       setAvatarUrl(data.avatar_url ?? null);
+      setLicense(data.license_number ?? '');
+      setVehicleNumber(data.vehicle_number ?? '');
     };
 
     loadProfile();
   }, [authUser]);
 
-  /* ---------------- AVATAR UPLOAD ---------------- */
+  /* ---------------- AVATAR ---------------- */
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
   };
@@ -146,12 +127,19 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
+      const updatePayload: any = {
+        full_name: fullName,
+        phone: mobile,
+      };
+
+      if (isPilot) {
+        updatePayload.license_number = license;
+        updatePayload.vehicle_number = vehicleNumber;
+      }
+
       const { error } = await supabase
         .from('users')
-        .update({
-          full_name: fullName,
-          phone: mobile,
-        })
+        .update(updatePayload)
         .eq('id', authUser.id);
 
       if (error) throw error;
@@ -215,11 +203,105 @@ export default function ProfilePage() {
     );
   };
 
+  if (!authUser) return null;
+
   return (
-    <AppLayout>
-      <div className="max-w-3xl">
-        {/* UI unchanged */}
-      </div>
-    </AppLayout>
+    <div className="max-w-4xl p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>My Profile</CardTitle>
+          <CardDescription>
+            Manage your personal information and account settings.
+          </CardDescription>
+          <PilotBadge />
+        </CardHeader>
+
+        <CardContent className="space-y-8">
+          {/* Avatar + Email */}
+          <div className="flex items-center gap-6">
+            <Avatar
+              className="h-24 w-24 cursor-pointer"
+              onClick={handleAvatarClick}
+            >
+              <AvatarImage src={avatarUrl ?? undefined} />
+              <AvatarFallback>
+                {fullName?.charAt(0) || authUser.email?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+
+            <div>
+              <h3 className="text-lg font-semibold">User</h3>
+              <p className="text-muted-foreground">
+                {authUser.email}
+              </p>
+            </div>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleAvatarChange}
+            />
+          </div>
+
+          {/* FORM GRID */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mobile Number</Label>
+              <Input
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+              />
+            </div>
+
+            {!isPilot && (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Email</Label>
+                <Input value={authUser.email ?? ''} disabled />
+              </div>
+            )}
+
+            {isPilot && (
+              <>
+                <div className="space-y-2">
+                  <Label>License</Label>
+                  <Input
+                    value={license}
+                    onChange={(e) => setLicense(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Vehicle Number</Label>
+                  <Input
+                    value={vehicleNumber}
+                    onChange={(e) => setVehicleNumber(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleLogout}>
+            Logout
+          </Button>
+
+          <Button onClick={handleSaveChanges} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

@@ -123,21 +123,34 @@ export default function QuickRidesPage() {
 
   /* ---------- Distance + Fare (TEMP MVP) ---------- */
   useEffect(() => {
-    if (pickup && dropoff) {
-      const d = Math.random() * 20 + 1;
-      setDistance(Number(d.toFixed(1)));
-    } else {
-      setDistance(null);
-    }
-  }, [pickup, dropoff]);
+  if (!pickup || !dropoff) {
+    setDistance(null);
+    setPrice(null);
+    return;
+  }
 
-  useEffect(() => {
-    if (distance !== null) {
-      setPrice(Math.max(10, Math.round(distance * 12 + 20)));
-    } else {
-      setPrice(null);
+  const previewFare = async () => {
+    try {
+      const res = await fetch('/api/rides/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pickup, dropoff }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) return;
+
+      setDistance(json.distanceKm);
+      setPrice(json.fareEstimate);
+    } catch {
+      // silent
     }
-  }, [distance]);
+  };
+
+  previewFare();
+}, [pickup, dropoff]);
+
 
   /* ---------- Ride Updates (Realtime) ---------- */
   useEffect(() => {
@@ -155,7 +168,7 @@ export default function QuickRidesPage() {
         },
         (payload) => {
           const updated = payload.new as Ride;
-          if (updated.status === 'accepted') {
+          if (updated.status === 'assigned') {
             setAcceptedRide(updated);
             setIsSearching(false);
             toast({ title: 'Ride Accepted!' });
@@ -169,6 +182,40 @@ export default function QuickRidesPage() {
     };
   }, [createdRideId, toast]);
 
+/*--------- Timer 60 sec ----------*/
+
+  useEffect(() => {
+  if (!isSearching || acceptedRide) return;
+
+  const timeout = setTimeout(() => {
+    setIsSearching(false);
+    toast({
+      title: 'No pilots available',
+      description: 'Please try again shortly',
+      variant: 'destructive',
+    });
+  }, 60_000);
+
+  return () => clearTimeout(timeout);
+}, [isSearching, acceptedRide, toast]);
+
+// 👇 ADD THIS DIRECTLY BELOW
+useEffect(() => {
+  if (!isSearching) {
+    setProgress(0);
+    return;
+  }
+
+  let value = 0;
+
+  const interval = setInterval(() => {
+    value += 100 / 60;
+    setProgress(Math.min(value, 100));
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [isSearching]);
+
   /* ---------- Find Ride (SERVER API ONLY) ---------- */
   const handleFindRide = async () => {
     if (!pickup || !dropoff) return;
@@ -181,12 +228,12 @@ export default function QuickRidesPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        passengerId: user.id,
-        pickup,
-        dropoff,
-        rideDate: null,
-        fare: price ?? 0,
-        distanceKm: distance ?? 0,
+       passengerId: user.id,
+  pickup,
+  dropoff,
+  distanceKm: distance ?? 0,
+  ride_type: 'quick',
+  rideDate: null,
         
       }),
     });
@@ -204,6 +251,15 @@ export default function QuickRidesPage() {
     }
 
     setCreatedRideId(json.ride.id);
+
+    // 🔔 trigger pilot matching
+fetch('/api/rides/match', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    rideId: json.ride.id,
+  }),
+});
 
     toast({
       title: 'Searching for pilots...',
@@ -227,21 +283,33 @@ export default function QuickRidesPage() {
 
               {isLoaded ? (
                 <Autocomplete
-                  onLoad={(ac) => (pickupAC.current = ac)}
-                  onPlaceChanged={() => {
-                    const place = pickupAC.current?.getPlace();
-                    if (place?.geometry && place.formatted_address) {
-                      setPickup({
-                        address: place.formatted_address,
-                        lat: place.geometry.location!.lat(),
-                        lng: place.geometry.location!.lng(),
-                      });
-                    }
-                  }}
-                  restrictions={{ country: 'in' }}
-                >
-                  <Input placeholder="Enter pickup location" />
-                </Autocomplete>
+  onLoad={(ac) => (pickupAC.current = ac)}
+  onPlaceChanged={() => {
+    if (isSearching) return;
+    const place = pickupAC.current?.getPlace();
+    if (place?.geometry && place.formatted_address) {
+      setPickup({
+        address: place.formatted_address,
+        lat: place.geometry.location!.lat(),
+        lng: place.geometry.location!.lng(),
+      });
+    }
+  }}
+  restrictions={{ country: 'in' }}
+>
+  <Input
+    placeholder="Enter pickup location"
+    value={pickup?.address || ''}
+    disabled={isSearching}
+    onChange={(e) =>
+      setPickup((prev) => ({
+        address: e.target.value,
+        lat: prev?.lat ?? 0,
+        lng: prev?.lng ?? 0,
+      }))
+    }
+  />
+</Autocomplete>
               ) : (
                 <Input disabled placeholder="Loading map…" />
               )}
@@ -250,6 +318,7 @@ export default function QuickRidesPage() {
                 variant="outline"
                 size="sm"
                 className="mt-2"
+                disabled={isSearching}
                 onClick={handleUseCurrentLocation}
               >
                 <MapPin className="mr-2 h-4 w-4" />
@@ -275,12 +344,33 @@ export default function QuickRidesPage() {
                   }}
                   restrictions={{ country: 'in' }}
                 >
-                  <Input placeholder="Enter destination" />
+                 <Input
+  placeholder="Enter destination"
+  value={dropoff?.address || ''}
+  disabled={isSearching}
+  onChange={(e) =>
+    setDropoff((prev) => ({
+      address: e.target.value,
+      lat: prev?.lat ?? 0,
+      lng: prev?.lng ?? 0,
+    }))
+  }
+/>
                 </Autocomplete>
               ) : (
                 <Input disabled placeholder="Loading map…" />
               )}
             </div>
+             
+             {distance !== null && price !== null && (
+  <div className="rounded-lg border p-3 bg-muted text-sm space-y-1">
+    <p>Estimated distance: <b>{distance.toFixed(1)} km</b></p>
+    <p>Estimated fare: <b>₹{price}</b></p>
+    <p className="text-xs text-muted-foreground">
+      Final fare may change slightly
+    </p>
+  </div>
+)}
 
             <Button
               className="w-full"
