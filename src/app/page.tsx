@@ -11,18 +11,25 @@ return (
 <main
 className="relative min-h-screen flex items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
 style={{
-backgroundColor: "whitesmoke",
+backgroundImage: "null",
 }}
 >
 {/* Overlay */} <div className="absolute inset-0 bg-white/20" />
 
-```
+
   {/* Content */}
   <div className="relative max-w-md w-full text-center space-y-6">
 
-    <h1 className="text-4xl font-extrabold tracking-wide text-gray-900">
-      🚖 AutoLink
-    </h1>
+    <div className="flex items-center justify-center gap-3">
+  <img
+    src="/logo/autolink-logo.png" 
+    alt="AutoLink Logo"
+    className="h-10 w-10"
+  />
+  <h1 className="text-3xl font-extrabold tracking-wide text-gray-900">
+    AutoLink
+  </h1>
+</div>
 
     <p className="text-gray-800 text-lg font-medium">
       Fair rides for passengers
@@ -53,5 +60,6 @@ backgroundColor: "whitesmoke",
 
   </div>
 </main>
+
 );
 }
